@@ -16,6 +16,7 @@ const Register = () => {
       toast.error('Invalid invite link');
       navigate('/login');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   const onSubmit = async (data) => {

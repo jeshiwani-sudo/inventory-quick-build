@@ -3,14 +3,14 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchSummary } from '../../store/slices/inventorySlice';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import StatCard from '../../components/common/StatCard';
-import LoadingSpinner from '../../components/common/LoadingSpinner';
+
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend } from 'recharts';
 import api from '../../utils/api';
 
 const MerchantDashboard = () => {
   const dispatch = useDispatch();
-  const { summary, loading } = useSelector((state) => state.inventory);
-  const { user } = useSelector((state) => state.auth);
+  const { summary } = useSelector((state) => state.inventory);
+  
   const [stores, setStores] = useState([]);
   const [storeReports, setStoreReports] = useState([]);
 

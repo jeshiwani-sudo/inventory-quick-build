@@ -16,6 +16,7 @@ const Login = () => {
     if (user) {
       redirectByRole(user.role);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   // Show error toast
@@ -24,6 +25,7 @@ const Login = () => {
       toast.error(error);
       dispatch(clearError());
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [error]);
 
   const redirectByRole = (role) => {

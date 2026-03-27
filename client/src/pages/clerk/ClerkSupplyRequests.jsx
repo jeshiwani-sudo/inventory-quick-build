@@ -15,6 +15,7 @@ const ClerkSupplyRequests = () => {
   useEffect(() => {
     fetchRequests();
     fetchProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
   const fetchRequests = async () => {

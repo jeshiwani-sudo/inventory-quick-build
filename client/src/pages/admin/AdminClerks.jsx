@@ -1,37 +1,18 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { toast } from 'react-toastify';
 import api from '../../utils/api';
 import { useSelector } from 'react-redux';
 
 const AdminClerks = () => {
-  const [clerks, setClerks] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [showInvite, setShowInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const { user } = useSelector(state => state.auth);
 
-  useEffect(() => {
-    fetchClerks();
-  }, []);
-
-  const fetchClerks = async () => {
-    setLoading(true);
-    try {
-      // We fetch all users — filter clerks client-side since there's no /users route yet
-      // For now we show a message; you can add a /users route to the backend later
-      setClerks([]);
-    } catch {
-      toast.error('Failed to load clerks');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const sendInvite = async (e) => {
     e.preventDefault();
     try {
-      const res = await api.post('/auth/invite', {
+      await api.post('/auth/invite', {
         email: inviteEmail,
         role: 'clerk',
         store_id: user?.store_id

@@ -8,8 +8,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 const AdminDashboard = () => {
   const dispatch = useDispatch();
-  const { entries, summary, loading } = useSelector((state) => state.inventory);
-  const { user } = useSelector((state) => state.auth);
+  
+  
 
   useEffect(() => {
     dispatch(fetchEntries({ page: 1, per_page: 20 }));

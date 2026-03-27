@@ -15,6 +15,7 @@ const AdminProducts = () => {
   useEffect(() => {
     fetchProducts();
     fetchStores();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
   const fetchProducts = async () => {
