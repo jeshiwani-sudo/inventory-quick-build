@@ -279,23 +279,37 @@ def get_users():
 def delete_user(user_id):
     claims = get_jwt()
     role = claims.get('role')
+    current_user_id = get_jwt_identity()
+
+    # Prevent deleting yourself
+    if int(current_user_id) == user_id:
+        return jsonify({'error': 'You cannot delete your own account'}), 400
 
     user = db.session.get(User, user_id)
     if not user:
         return jsonify({'error': 'User not found'}), 404
 
-    if role == 'merchant' and user.role != 'admin':
-        return jsonify({'error': 'Merchants can only remove admins'}), 403
+    # Merchant can only delete admins and clerks
+    if role == 'merchant' and user.role not in ['admin', 'clerk']:
+        return jsonify({'error': 'Merchants can only remove admins or clerks'}), 403
 
-    if role == 'admin' and user.role != 'clerk':
-        return jsonify({'error': 'Admins can only remove clerks'}), 403
+    # Admin can only delete clerks in their own store
+    if role == 'admin':
+        current_user = db.session.get(User, int(current_user_id))
+        if user.role != 'clerk':
+            return jsonify({'error': 'Admins can only remove clerks'}), 403
+        if user.store_id != current_user.store_id:
+            return jsonify({'error': 'You can only remove clerks from your own store'}), 403
 
     if role == 'clerk':
         return jsonify({'error': 'Not authorized'}), 403
 
-    db.session.delete(user)
-    db.session.commit()
-
-    return jsonify({
-        'message': f'{user.full_name} has been removed successfully ✅'
-    }), 200
+    try:
+        name = user.full_name
+        db.session.delete(user)
+        db.session.commit()
+        return jsonify({'message': f'{name} has been removed successfully ✅'}), 200
+    except Exception as e:
+        db.session.rollback()
+        print(f"Delete error: {e}")
+        return jsonify({'error': 'Failed to delete user. They may have linked records.'}), 500

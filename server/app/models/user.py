@@ -19,8 +19,8 @@ class User(db.Model):
 
     # Relationships
     store = db.relationship('Store', back_populates='users')
-    inventory_entries = db.relationship('InventoryEntry', back_populates='clerk')
-    supply_requests = db.relationship('SupplyRequest', back_populates='clerk')
+    inventory_entries = db.relationship('InventoryEntry', back_populates='clerk', cascade='all, delete-orphan')
+    supply_requests = db.relationship('SupplyRequest', back_populates='clerk', cascade='all, delete-orphan')
 
     def to_dict(self):
         return {
