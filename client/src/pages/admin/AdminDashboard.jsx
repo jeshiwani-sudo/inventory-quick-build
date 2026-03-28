@@ -4,19 +4,20 @@ import { fetchEntries, fetchSummary } from '../../store/slices/inventorySlice';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import StatCard from '../../components/common/StatCard';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, LineChart, Line
+} from 'recharts';
 
 const AdminDashboard = () => {
   const dispatch = useDispatch();
-  
-  
+  const { entries, summary, loading } = useSelector((state) => state.inventory);
 
   useEffect(() => {
     dispatch(fetchEntries({ page: 1, per_page: 20 }));
     dispatch(fetchSummary());
   }, [dispatch]);
 
-  // Prepare chart data from entries
   const chartData = entries.slice(0, 7).map((entry) => ({
     name: entry.product_name?.slice(0, 10),
     received: entry.quantity_received,
@@ -25,7 +26,7 @@ const AdminDashboard = () => {
   }));
 
   return (
-    <DashboardLayout title={`Admin Dashboard 👔`}>
+    <DashboardLayout title="Admin Dashboard 👔">
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
@@ -58,8 +59,6 @@ const AdminDashboard = () => {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-
-        {/* Bar Chart */}
         <div className="card">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">
             Stock Overview (Bar Chart)
@@ -79,7 +78,6 @@ const AdminDashboard = () => {
           )}
         </div>
 
-        {/* Line Chart */}
         <div className="card">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">
             Stock Trend (Line Chart)
@@ -97,7 +95,6 @@ const AdminDashboard = () => {
             </ResponsiveContainer>
           )}
         </div>
-
       </div>
 
       {/* Payment Summary */}

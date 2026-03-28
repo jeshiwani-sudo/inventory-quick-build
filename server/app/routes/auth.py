@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jwt
 from app import db
 from app.models.user import User
 from app.utils.validators import validate_email, validate_password, validate_required_fields
@@ -122,7 +122,7 @@ def login():
 @jwt_required()
 def invite_user():
     current_user_id = get_jwt_identity()
-    current_user = User.query.get(current_user_id)
+    db.session.get(User, int(current_user_id))
 
     if not current_user:
         return jsonify({'error': 'User not found'}), 404
@@ -242,3 +242,60 @@ def get_current_user():
         return jsonify({'error': 'User not found'}), 404
 
     return jsonify({'user': user.to_dict()}), 200
+
+# -----------------------------------------------
+# GET USERS BY ROLE
+# -----------------------------------------------
+@auth_bp.route('/users', methods=['GET'])
+@jwt_required()
+def get_users():
+    claims = get_jwt()
+    role = claims.get('role')
+    current_user_id = get_jwt_identity()
+
+    if role == 'merchant':
+        users = User.query.filter_by(role='admin').all()
+
+    elif role == 'admin':
+        current_user = db.session.get(User, int(current_user_id))
+        if not current_user:
+            return jsonify({'error': 'User not found'}), 404
+        users = User.query.filter_by(
+            role='clerk',
+            store_id=current_user.store_id
+        ).all()
+
+    else:
+        return jsonify({'error': 'Not authorized'}), 403
+
+    return jsonify({'users': [u.to_dict() for u in users]}), 200
+
+
+# -----------------------------------------------
+# DELETE A USER
+# -----------------------------------------------
+@auth_bp.route('/users/<int:user_id>', methods=['DELETE'])
+@jwt_required()
+def delete_user(user_id):
+    claims = get_jwt()
+    role = claims.get('role')
+
+    user = db.session.get(User, user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    if role == 'merchant' and user.role != 'admin':
+        return jsonify({'error': 'Merchants can only remove admins'}), 403
+
+    if role == 'admin' and user.role != 'clerk':
+        return jsonify({'error': 'Admins can only remove clerks'}), 403
+
+    if role == 'clerk':
+        return jsonify({'error': 'Not authorized'}), 403
+
+    db.session.delete(user)
+    db.session.commit()
+
+    return jsonify({
+        'message': f'{user.full_name} has been removed successfully ✅'
+    }), 200
