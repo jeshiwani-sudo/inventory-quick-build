@@ -30,18 +30,21 @@ const MerchantStores = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name || !form.location) {
-      return toast.error('Name and location are required');
+      return toast.error('Store name and location are required');
     }
 
     setActionId('save');
     try {
       if (editingStore) {
+        // Update existing store
         await api.put(`/stores/${editingStore.id}`, form);
         toast.success('Store updated successfully');
       } else {
+        // Create new store
         await api.post('/stores/', form);
-        toast.success('Store created successfully');
+        toast.success('New store created successfully');
       }
+      
       setShowForm(false);
       setEditingStore(null);
       setForm({ name: '', location: '' });
@@ -60,15 +63,15 @@ const MerchantStores = () => {
   };
 
   const handleDelete = async (store) => {
-    if (!window.confirm(`Delete store "${store.name}"? This cannot be undone.`)) return;
+    if (!window.confirm(`Delete store "${store.name}"? This action cannot be undone.`)) return;
 
     setActionId(store.id);
     try {
       await api.delete(`/stores/${store.id}`);
-      toast.success('Store deleted successfully');
+      toast.success(`Store "${store.name}" deleted successfully`);
       fetchStores();
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to delete store. It may have users or products.');
+      toast.error(err.response?.data?.error || 'Cannot delete store. It may have users or products assigned.');
     } finally {
       setActionId(null);
     }
@@ -92,6 +95,7 @@ const MerchantStores = () => {
             </button>
           </div>
 
+          {/* Add/Edit Form */}
           {showForm && (
             <form onSubmit={handleSubmit} className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-6 mb-8 space-y-5">
               <div>
@@ -99,7 +103,7 @@ const MerchantStores = () => {
                 <input
                   className="input-field"
                   value={form.name}
-                  onChange={e => setForm({ ...form, name: e.target.value })}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
                   placeholder="e.g. Westlands Branch"
                   required
                 />
@@ -109,18 +113,25 @@ const MerchantStores = () => {
                 <input
                   className="input-field"
                   value={form.location}
-                  onChange={e => setForm({ ...form, location: e.target.value })}
+                  onChange={(e) => setForm({ ...form, location: e.target.value })}
                   placeholder="e.g. Westlands, Waiyaki Way"
                   required
                 />
               </div>
-              <div className="flex gap-3">
-                <button type="submit" className="btn-primary flex-1" disabled={actionId === 'save'}>
+              <div className="flex gap-3 pt-2">
+                <button 
+                  type="submit" 
+                  className="btn-primary flex-1"
+                  disabled={actionId === 'save'}
+                >
                   {actionId === 'save' ? 'Saving...' : editingStore ? 'Update Store' : 'Create Store'}
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setShowForm(false); setEditingStore(null); }}
+                  onClick={() => {
+                    setShowForm(false);
+                    setEditingStore(null);
+                  }}
                   className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
                   Cancel
@@ -129,6 +140,7 @@ const MerchantStores = () => {
             </form>
           )}
 
+          {/* Stores Table */}
           {loading ? (
             <div className="text-center py-16 text-gray-400">Loading stores...</div>
           ) : stores.length === 0 ? (
@@ -147,22 +159,22 @@ const MerchantStores = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {stores.map(store => (
+                  {stores.map((store) => (
                     <tr key={store.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
                       <td className="py-4 px-4 font-medium text-gray-800 dark:text-white">{store.name}</td>
                       <td className="py-4 px-4 text-gray-600 dark:text-gray-300">{store.location}</td>
                       <td className="py-4 px-4">
-                        <div className="flex gap-2">
+                        <div className="flex gap-3">
                           <button
                             onClick={() => handleEdit(store)}
-                            className="text-blue-600 hover:text-blue-700 text-sm font-medium px-3 py-1 rounded hover:bg-blue-50"
+                            className="text-blue-600 hover:text-blue-700 text-sm font-medium px-4 py-1 rounded hover:bg-blue-50 transition-colors"
                           >
                             Edit
                           </button>
                           <button
                             onClick={() => handleDelete(store)}
                             disabled={actionId === store.id}
-                            className="text-red-600 hover:text-red-700 text-sm font-medium px-3 py-1 rounded hover:bg-red-50 disabled:opacity-50"
+                            className="text-red-600 hover:text-red-700 text-sm font-medium px-4 py-1 rounded hover:bg-red-50 transition-colors disabled:opacity-50"
                           >
                             {actionId === store.id ? 'Deleting...' : 'Delete'}
                           </button>

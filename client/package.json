@@ -11,6 +11,8 @@
     "autoprefixer": "^10.4.27",
     "axios": "^1.13.6",
     "cra-template-redux": "2.0.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
     "jwt-decode": "^4.0.0",
     "postcss": "^8.5.8",
     "react": "^19.2.4",
