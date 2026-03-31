@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-toastify';
@@ -9,15 +9,14 @@ const Register = () => {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   const { register, handleSubmit, formState: { errors }, watch } = useForm();
-  const [loading, setLoading] = React.useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!token) {
       toast.error('Invalid invite link');
       navigate('/login');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  }, [token, navigate]);
 
   const onSubmit = async (data) => {
     setLoading(true);
@@ -25,6 +24,7 @@ const Register = () => {
       await api.post('/auth/register', {
         token,
         full_name: data.full_name,
+        phone_number: data.phone_number,
         password: data.password
       });
       toast.success('Registration complete! Please login 🎉');
@@ -62,6 +62,23 @@ const Register = () => {
             />
             {errors.full_name && (
               <p className="text-red-500 text-sm mt-1">{errors.full_name.message}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Phone Number
+            </label>
+            <input
+              type="tel"
+              className="input-field"
+              placeholder="+254 712 345 678"
+              {...register('phone_number', { 
+                required: 'Phone number is required'
+              })}
+            />
+            {errors.phone_number && (
+              <p className="text-red-500 text-sm mt-1">{errors.phone_number.message}</p>
             )}
           </div>
 

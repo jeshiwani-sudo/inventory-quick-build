@@ -1,13 +1,12 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL;
+const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000/api';
 
-// Create axios instance
 const api = axios.create({
   baseURL: API_URL,
 });
 
-// Automatically add token to every request
+// Attach JWT token automatically
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -19,7 +18,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Handle expired tokens automatically
+// Global error handling
 api.interceptors.response.use(
   (response) => response,
   (error) => {

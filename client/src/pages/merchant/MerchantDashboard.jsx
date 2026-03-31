@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchSummary } from '../../store/slices/inventorySlice';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import StatCard from '../../components/common/StatCard';
-
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend } from 'recharts';
 import api from '../../utils/api';
 
@@ -22,9 +21,8 @@ const MerchantDashboard = () => {
   const loadStores = async () => {
     try {
       const res = await api.get('/stores/');
-      setStores(res.data.stores);
+      setStores(res.data.stores || []);
 
-      // Load report for each store
       const reports = await Promise.all(
         res.data.stores.map(async (store) => {
           const r = await api.get(`/inventory/report/summary?store_id=${store.id}`);
@@ -36,15 +34,14 @@ const MerchantDashboard = () => {
       );
       setStoreReports(reports);
     } catch (err) {
-      console.log(err);
+      console.error(err);
     }
   };
 
   return (
     <DashboardLayout title={`Merchant Overview 👑`}>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+      {/* Stats - Responsive Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
         <StatCard
           title="Total Stores"
           value={stores.length}
@@ -71,16 +68,14 @@ const MerchantDashboard = () => {
         />
       </div>
 
-      {/* Store by Store Report */}
+      {/* Charts - Responsive Layout */}
       {storeReports.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-
-          {/* Bar Chart - Store Comparison */}
           <div className="card">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">
               Store Stock Comparison
             </h2>
-            <ResponsiveContainer width="100%" height={250}>
+            <ResponsiveContainer width="100%" height={280}>
               <BarChart data={storeReports}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="name" tick={{ fontSize: 11 }} />
@@ -93,12 +88,11 @@ const MerchantDashboard = () => {
             </ResponsiveContainer>
           </div>
 
-          {/* Line Chart - Payment Status */}
           <div className="card">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">
               Payment Status per Store
             </h2>
-            <ResponsiveContainer width="100%" height={250}>
+            <ResponsiveContainer width="100%" height={280}>
               <LineChart data={storeReports}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="name" tick={{ fontSize: 11 }} />
@@ -110,11 +104,10 @@ const MerchantDashboard = () => {
               </LineChart>
             </ResponsiveContainer>
           </div>
-
         </div>
       )}
 
-      {/* Stores List */}
+      {/* Stores List - Responsive Grid */}
       <div className="card">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">All Stores</h2>
         {stores.length === 0 ? (
@@ -123,17 +116,17 @@ const MerchantDashboard = () => {
             <p>No stores yet. Create your first store!</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {stores.map((store) => (
-              <div key={store.id} className="border border-gray-200 rounded-xl p-4 hover:border-primary transition-all">
-                <div className="flex items-center gap-3 mb-2">
-                  <span className="text-2xl">🏪</span>
-                  <div>
-                    <p className="font-semibold text-gray-800">{store.name}</p>
-                    <p className="text-sm text-gray-400">{store.location}</p>
+              <div key={store.id} className="border border-gray-200 rounded-xl p-5 hover:border-primary transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-3xl">🏪</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-800 truncate">{store.name}</p>
+                    <p className="text-sm text-gray-500 truncate">{store.location || 'No location'}</p>
                   </div>
                 </div>
-                <span className={`text-xs px-2 py-1 rounded-full ${store.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                <span className={`text-xs px-3 py-1 rounded-full ${store.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                   {store.is_active ? 'Active' : 'Inactive'}
                 </span>
               </div>
@@ -141,7 +134,6 @@ const MerchantDashboard = () => {
           </div>
         )}
       </div>
-
     </DashboardLayout>
   );
 };

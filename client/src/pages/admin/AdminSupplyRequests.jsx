@@ -12,7 +12,6 @@ const AdminSupplyRequests = () => {
 
   useEffect(() => {
     fetchRequests();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, filter]);
 
   const fetchRequests = async () => {
@@ -21,40 +20,44 @@ const AdminSupplyRequests = () => {
       let url = `/supply-requests/?page=${page}&per_page=10`;
       if (filter) url += `&status=${filter}`;
       const res = await api.get(url);
-      setRequests(res.data.requests);
-      setTotalPages(res.data.pages);
+      setRequests(res.data.requests || []);
+      setTotalPages(res.data.pages || 1);
     } catch {
-      toast.error('Failed to load requests');
+      toast.error('Failed to load supply requests');
     } finally {
       setLoading(false);
     }
   };
 
   const respond = async (id, status) => {
+    const action = status === 'approved' ? 'approve' : 'decline';
+    if (!window.confirm(`Are you sure you want to ${action} this request?`)) return;
+
     try {
       await api.patch(`/supply-requests/${id}/respond`, { status });
-      toast.success(`Request ${status} ✅`);
+      toast.success(`Request ${status} successfully ✅`);
       fetchRequests();
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed');
+      toast.error(err.response?.data?.error || 'Failed to update request');
     }
   };
 
-  const statusBadge = (status) => {
-    if (status === 'approved') return 'badge-approved';
-    if (status === 'declined') return 'badge-declined';
-    return 'badge-pending';
+  const getStatusBadge = (status) => {
+    if (status === 'approved') return 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300';
+    if (status === 'declined') return 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300';
+    return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300';
   };
 
   return (
     <DashboardLayout title="Supply Requests 🚚">
       <div className="card">
-        <div className="flex justify-between items-center mb-5">
-          <h2 className="text-lg font-semibold text-gray-800">All Supply Requests</h2>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <h2 className="text-xl font-semibold text-gray-800 dark:text-white">All Supply Requests</h2>
+          
           <select
-            className="input-field w-48"
+            className="input-field w-full sm:w-52"
             value={filter}
-            onChange={e => { setFilter(e.target.value); setPage(1); }}
+            onChange={(e) => { setFilter(e.target.value); setPage(1); }}
           >
             <option value="">All Statuses</option>
             <option value="pending">Pending</option>
@@ -64,56 +67,58 @@ const AdminSupplyRequests = () => {
         </div>
 
         {loading ? (
-          <p className="text-center text-gray-400 py-10">Loading...</p>
+          <div className="text-center py-16 text-gray-400 dark:text-gray-500">Loading supply requests...</div>
         ) : requests.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
-            <p className="text-4xl mb-3">🚚</p>
-            <p>No supply requests found.</p>
+          <div className="text-center py-16 text-gray-400 dark:text-gray-500">
+            <p className="text-5xl mb-4">🚚</p>
+            <p className="text-lg">No supply requests found</p>
           </div>
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm min-w-[850px]">
                 <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 text-gray-500 font-medium">Product</th>
-                    <th className="text-left py-3 px-4 text-gray-500 font-medium">Clerk</th>
-                    <th className="text-left py-3 px-4 text-gray-500 font-medium">Qty Requested</th>
-                    <th className="text-left py-3 px-4 text-gray-500 font-medium">Note</th>
-                    <th className="text-left py-3 px-4 text-gray-500 font-medium">Status</th>
-                    <th className="text-left py-3 px-4 text-gray-500 font-medium">Date</th>
-                    <th className="text-left py-3 px-4 text-gray-500 font-medium">Actions</th>
+                  <tr className="border-b border-gray-200 dark:border-gray-700">
+                    <th className="text-left py-4 px-4 font-medium text-gray-500 dark:text-gray-400">Product</th>
+                    <th className="text-left py-4 px-4 font-medium text-gray-500 dark:text-gray-400">Clerk</th>
+                    <th className="text-left py-4 px-4 font-medium text-gray-500 dark:text-gray-400">Qty Requested</th>
+                    <th className="text-left py-4 px-4 font-medium text-gray-500 dark:text-gray-400">Note</th>
+                    <th className="text-left py-4 px-4 font-medium text-gray-500 dark:text-gray-400">Status</th>
+                    <th className="text-left py-4 px-4 font-medium text-gray-500 dark:text-gray-400">Date</th>
+                    <th className="text-left py-4 px-4 font-medium text-gray-500 dark:text-gray-400">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {requests.map(r => (
-                    <tr key={r.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-3 px-4 font-medium text-gray-800">{r.product_name}</td>
-                      <td className="py-3 px-4 text-gray-500">{r.clerk_name}</td>
-                      <td className="py-3 px-4">{r.quantity_requested}</td>
-                      <td className="py-3 px-4 text-gray-400">{r.note || '—'}</td>
-                      <td className="py-3 px-4">
-                        <span className={statusBadge(r.status)}>{r.status}</span>
+                    <tr key={r.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+                      <td className="py-4 px-4 font-medium text-gray-800 dark:text-white">{r.product_name}</td>
+                      <td className="py-4 px-4 text-gray-600 dark:text-gray-300">{r.clerk_name}</td>
+                      <td className="py-4 px-4 font-medium">{r.quantity_requested}</td>
+                      <td className="py-4 px-4 text-gray-500 dark:text-gray-400 max-w-xs truncate">{r.note || '—'}</td>
+                      <td className="py-4 px-4">
+                        <span className={`px-4 py-1 text-xs font-medium rounded-full ${getStatusBadge(r.status)}`}>
+                          {r.status}
+                        </span>
                       </td>
-                      <td className="py-3 px-4 text-gray-400 text-xs">{r.created_at}</td>
-                      <td className="py-3 px-4">
+                      <td className="py-4 px-4 text-gray-400 dark:text-gray-500 text-xs">{r.created_at}</td>
+                      <td className="py-4 px-4">
                         {r.status === 'pending' ? (
                           <div className="flex gap-2">
                             <button
                               onClick={() => respond(r.id, 'approved')}
-                              className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-lg hover:bg-green-200 font-medium"
+                              className="text-xs bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900 dark:text-green-300 px-4 py-1.5 rounded-lg font-medium transition-colors"
                             >
                               Approve
                             </button>
                             <button
                               onClick={() => respond(r.id, 'declined')}
-                              className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-lg hover:bg-red-200 font-medium"
+                              className="text-xs bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900 dark:text-red-300 px-4 py-1.5 rounded-lg font-medium transition-colors"
                             >
                               Decline
                             </button>
                           </div>
                         ) : (
-                          <span className="text-gray-400 text-xs">Done</span>
+                          <span className="text-gray-400 dark:text-gray-500 text-xs">Done</span>
                         )}
                       </td>
                     </tr>
@@ -121,13 +126,24 @@ const AdminSupplyRequests = () => {
                 </tbody>
               </table>
             </div>
+
             {totalPages > 1 && (
-              <div className="flex gap-2 mt-4 justify-center">
-                <button disabled={page === 1} onClick={() => setPage(p => p - 1)}
-                  className="px-3 py-1 rounded border text-sm disabled:opacity-40">← Prev</button>
-                <span className="px-3 py-1 text-sm">Page {page} of {totalPages}</span>
-                <button disabled={page === totalPages} onClick={() => setPage(p => p + 1)}
-                  className="px-3 py-1 rounded border text-sm disabled:opacity-40">Next →</button>
+              <div className="flex justify-center gap-3 mt-6">
+                <button 
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="px-4 py-2 border rounded-lg disabled:opacity-50"
+                >
+                  ← Previous
+                </button>
+                <span className="px-4 py-2 text-sm">Page {page} of {totalPages}</span>
+                <button 
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="px-4 py-2 border rounded-lg disabled:opacity-50"
+                >
+                  Next →
+                </button>
               </div>
             )}
           </>

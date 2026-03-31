@@ -1,24 +1,28 @@
 import React, { useEffect, useState } from 'react';
-import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { createEntry } from '../../store/slices/inventorySlice';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { toast } from 'react-toastify';
 import api from '../../utils/api';
 
 const RecordEntry = () => {
-  const dispatch = useDispatch();
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
-  const { register, handleSubmit, formState: { errors } } = useForm();
+  const [submitting, setSubmitting] = useState(false);
+
+  const { register, handleSubmit, formState: { errors }, reset, watch } = useForm({
+    defaultValues: {
+      quantity_spoilt: 0,
+      payment_status: 'unpaid'
+    }
+  });
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         const res = await api.get('/products/');
-        setProducts(res.data.products);
+        setProducts(res.data.products || []);
       } catch {
         toast.error('Failed to load products');
       }
@@ -27,35 +31,36 @@ const RecordEntry = () => {
   }, []);
 
   const onSubmit = async (data) => {
-    setLoading(true);
-    const result = await dispatch(createEntry({
-      ...data,
-      product_id: parseInt(data.product_id),
-      quantity_received: parseInt(data.quantity_received),
-      quantity_in_stock: parseInt(data.quantity_in_stock),
-      quantity_spoilt: parseInt(data.quantity_spoilt),
-      buying_price: parseFloat(data.buying_price),
-      selling_price: parseFloat(data.selling_price),
-    }));
+    setSubmitting(true);
+    try {
+      await api.post('/inventory/', {
+        product_id: parseInt(data.product_id),
+        quantity_received: parseInt(data.quantity_received),
+        quantity_in_stock: parseInt(data.quantity_in_stock),
+        quantity_spoilt: parseInt(data.quantity_spoilt || 0),
+        buying_price: parseFloat(data.buying_price),
+        selling_price: parseFloat(data.selling_price),
+        payment_status: data.payment_status
+      });
 
-    if (createEntry.fulfilled.match(result)) {
       toast.success('Entry recorded successfully ✅');
+      reset();
       navigate('/clerk/my-entries');
-    } else {
-      toast.error(result.payload || 'Failed to record entry');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to record entry');
+    } finally {
+      setSubmitting(false);
     }
-    setLoading(false);
   };
 
   return (
     <DashboardLayout title="Record New Entry 📝">
-      <div className="max-w-2xl">
+      <div className="max-w-2xl mx-auto">
         <div className="card">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
 
-            {/* Product */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Product *
               </label>
               <select
@@ -64,7 +69,9 @@ const RecordEntry = () => {
               >
                 <option value="">Select a product...</option>
                 {products.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
                 ))}
               </select>
               {errors.product_id && (
@@ -73,23 +80,23 @@ const RecordEntry = () => {
             </div>
 
             {/* Quantities */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Qty Received *
                 </label>
                 <input
                   type="number"
                   min="0"
                   className="input-field"
-                  {...register('quantity_received', { required: 'Required' })}
+                  {...register('quantity_received', { required: 'Required', min: 1 })}
                 />
                 {errors.quantity_received && (
                   <p className="text-red-500 text-sm mt-1">{errors.quantity_received.message}</p>
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Qty In Stock *
                 </label>
                 <input
@@ -98,9 +105,12 @@ const RecordEntry = () => {
                   className="input-field"
                   {...register('quantity_in_stock', { required: 'Required' })}
                 />
+                {errors.quantity_in_stock && (
+                  <p className="text-red-500 text-sm mt-1">{errors.quantity_in_stock.message}</p>
+                )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Qty Spoilt
                 </label>
                 <input
@@ -114,9 +124,9 @@ const RecordEntry = () => {
             </div>
 
             {/* Prices */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Buying Price (KES) *
                 </label>
                 <input
@@ -124,14 +134,14 @@ const RecordEntry = () => {
                   step="0.01"
                   min="0"
                   className="input-field"
-                  {...register('buying_price', { required: 'Required' })}
+                  {...register('buying_price', { required: 'Required', min: 0 })}
                 />
                 {errors.buying_price && (
                   <p className="text-red-500 text-sm mt-1">{errors.buying_price.message}</p>
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Selling Price (KES) *
                 </label>
                 <input
@@ -139,7 +149,7 @@ const RecordEntry = () => {
                   step="0.01"
                   min="0"
                   className="input-field"
-                  {...register('selling_price', { required: 'Required' })}
+                  {...register('selling_price', { required: 'Required', min: 0 })}
                 />
                 {errors.selling_price && (
                   <p className="text-red-500 text-sm mt-1">{errors.selling_price.message}</p>
@@ -149,7 +159,7 @@ const RecordEntry = () => {
 
             {/* Payment Status */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Payment Status
               </label>
               <select
@@ -162,18 +172,18 @@ const RecordEntry = () => {
             </div>
 
             {/* Buttons */}
-            <div className="flex gap-3 pt-2">
+            <div className="flex flex-col sm:flex-row gap-3 pt-6">
               <button
                 type="submit"
-                disabled={loading}
-                className="btn-primary disabled:opacity-50"
+                disabled={submitting}
+                className="btn-primary disabled:opacity-50 flex-1 py-3 text-base font-medium"
               >
-                {loading ? 'Saving...' : 'Record Entry ✅'}
+                {submitting ? 'Recording Entry...' : 'Record Entry ✅'}
               </button>
               <button
                 type="button"
                 onClick={() => navigate('/clerk/dashboard')}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium"
+                className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-sm font-medium flex-1 sm:flex-none"
               >
                 Cancel
               </button>
