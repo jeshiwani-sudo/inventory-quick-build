@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { toast } from 'react-toastify';
 import api from '../../utils/api';
@@ -13,12 +13,8 @@ const AdminProducts = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  useEffect(() => {
-    fetchProducts();
-    fetchStores();
-  }, [page]);
-
-  const fetchProducts = async () => {
+  // Memoize fetch functions to avoid exhaustive-deps warnings
+  const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
       const res = await api.get(`/products/?page=${page}&per_page=10`);
@@ -29,16 +25,21 @@ const AdminProducts = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page]);
 
-  const fetchStores = async () => {
+  const fetchStores = useCallback(async () => {
     try {
       const res = await api.get('/stores/');
       setStores(res.data.stores || []);
     } catch (err) {
-      console.error('Failed to load stores:', err);
+      console.error(err);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchProducts();
+    fetchStores();
+  }, [fetchProducts, fetchStores]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -164,17 +165,17 @@ const AdminProducts = () => {
                   </thead>
                   <tbody>
                     {filteredProducts.map(p => (
-                      <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="py-4 px-4 font-medium">{p.name}</td>
-                        <td className="py-4 px-4 text-gray-500">{p.description || '—'}</td>
-                        <td className="py-4 px-4 text-gray-600 font-medium">
+                      <tr key={p.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+                        <td className="py-4 px-4 font-medium text-gray-800 dark:text-white">{p.name}</td>
+                        <td className="py-4 px-4 text-gray-600 dark:text-gray-300">{p.description || '—'}</td>
+                        <td className="py-4 px-4 text-gray-600 dark:text-gray-300 font-medium">
                           {getStoreName(p.store_id)}
                         </td>
-                        <td className="py-4 px-4 text-gray-400 text-xs">{p.created_at}</td>
+                        <td className="py-4 px-4 text-gray-400 dark:text-gray-500 text-xs">{p.created_at}</td>
                         <td className="py-4 px-4">
                           <button
                             onClick={() => handleDelete(p.id, p.name)}
-                            className="text-red-500 hover:text-red-700 text-sm font-medium px-3 py-1 rounded-lg hover:bg-red-50 transition-colors"
+                            className="text-red-500 hover:text-red-700 text-sm font-medium px-3 py-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900 transition-colors"
                           >
                             Delete
                           </button>

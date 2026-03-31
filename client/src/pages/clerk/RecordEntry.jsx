@@ -8,10 +8,9 @@ import api from '../../utils/api';
 const RecordEntry = () => {
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const { register, handleSubmit, formState: { errors }, reset, watch } = useForm({
+  const { register, handleSubmit, formState: { errors }, reset } = useForm({
     defaultValues: {
       quantity_spoilt: 0,
       payment_status: 'unpaid'
@@ -79,7 +78,6 @@ const RecordEntry = () => {
               )}
             </div>
 
-            {/* Quantities */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -105,9 +103,6 @@ const RecordEntry = () => {
                   className="input-field"
                   {...register('quantity_in_stock', { required: 'Required' })}
                 />
-                {errors.quantity_in_stock && (
-                  <p className="text-red-500 text-sm mt-1">{errors.quantity_in_stock.message}</p>
-                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -123,7 +118,6 @@ const RecordEntry = () => {
               </div>
             </div>
 
-            {/* Prices */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -136,9 +130,6 @@ const RecordEntry = () => {
                   className="input-field"
                   {...register('buying_price', { required: 'Required', min: 0 })}
                 />
-                {errors.buying_price && (
-                  <p className="text-red-500 text-sm mt-1">{errors.buying_price.message}</p>
-                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -151,13 +142,9 @@ const RecordEntry = () => {
                   className="input-field"
                   {...register('selling_price', { required: 'Required', min: 0 })}
                 />
-                {errors.selling_price && (
-                  <p className="text-red-500 text-sm mt-1">{errors.selling_price.message}</p>
-                )}
               </div>
             </div>
 
-            {/* Payment Status */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Payment Status
@@ -171,7 +158,6 @@ const RecordEntry = () => {
               </select>
             </div>
 
-            {/* Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 pt-6">
               <button
                 type="submit"
@@ -183,7 +169,7 @@ const RecordEntry = () => {
               <button
                 type="button"
                 onClick={() => navigate('/clerk/dashboard')}
-                className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-sm font-medium flex-1 sm:flex-none"
+                className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-sm font-medium"
               >
                 Cancel
               </button>

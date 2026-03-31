@@ -7,8 +7,9 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     full_name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
+    phone_number = db.Column(db.String(20), nullable=True)          # Added
     password_hash = db.Column(db.String(256), nullable=False)
-    role = db.Column(db.String(20), nullable=False)  # 'merchant', 'admin', 'clerk'
+    role = db.Column(db.String(20), nullable=False)  # merchant, admin, clerk
     is_active = db.Column(db.Boolean, default=True)
     is_verified = db.Column(db.Boolean, default=False)
     invite_token = db.Column(db.String(256), nullable=True)
@@ -27,6 +28,7 @@ class User(db.Model):
             'id': self.id,
             'full_name': self.full_name,
             'email': self.email,
+            'phone_number': self.phone_number,
             'role': self.role,
             'is_active': self.is_active,
             'is_verified': self.is_verified,

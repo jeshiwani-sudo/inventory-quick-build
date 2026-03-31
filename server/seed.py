@@ -38,14 +38,15 @@ def seed():
         db.session.commit()
 
         # -----------------------------------------------
-        # CREATE USERS
+        # CREATE USERS (All passwords = password123)
         # -----------------------------------------------
         print("👥 Creating users...")
 
-        # Merchant (no store — sees everything)
+        # Merchant
         merchant = User(
             full_name="James Mwangi",
             email="merchant@test.com",
+            phone_number="+254 712 345 678",
             password_hash=hash_password("password123"),
             role="merchant",
             is_active=True,
@@ -53,10 +54,11 @@ def seed():
             store_id=None
         )
 
-        # Admins (one per store)
+        # Admins
         admin1 = User(
             full_name="Admin One",
             email="admin1@test.com",
+            phone_number="+254 723 456 789",
             password_hash=hash_password("password123"),
             role="admin",
             is_active=True,
@@ -66,6 +68,7 @@ def seed():
         admin2 = User(
             full_name="Admin Two",
             email="admin2@test.com",
+            phone_number="+254 734 567 890",
             password_hash=hash_password("password123"),
             role="admin",
             is_active=True,
@@ -75,6 +78,7 @@ def seed():
         admin3 = User(
             full_name="Admin Three",
             email="admin3@test.com",
+            phone_number="+254 745 678 901",
             password_hash=hash_password("password123"),
             role="admin",
             is_active=True,
@@ -82,10 +86,11 @@ def seed():
             store_id=store3.id
         )
 
-        # Clerks (two per store)
+        # Clerks
         clerk1 = User(
             full_name="Clerk One",
             email="clerk1@test.com",
+            phone_number="+254 756 789 012",
             password_hash=hash_password("password123"),
             role="clerk",
             is_active=True,
@@ -95,6 +100,7 @@ def seed():
         clerk2 = User(
             full_name="Clerk Two",
             email="clerk2@test.com",
+            phone_number="+254 767 890 123",
             password_hash=hash_password("password123"),
             role="clerk",
             is_active=True,
@@ -104,6 +110,7 @@ def seed():
         clerk3 = User(
             full_name="Clerk Three",
             email="clerk3@test.com",
+            phone_number="+254 778 901 234",
             password_hash=hash_password("password123"),
             role="clerk",
             is_active=True,
@@ -113,6 +120,7 @@ def seed():
         clerk4 = User(
             full_name="Clerk Four",
             email="clerk4@test.com",
+            phone_number="+254 789 012 345",
             password_hash=hash_password("password123"),
             role="clerk",
             is_active=True,
@@ -122,6 +130,7 @@ def seed():
         clerk5 = User(
             full_name="Clerk Five",
             email="clerk5@test.com",
+            phone_number="+254 790 123 456",
             password_hash=hash_password("password123"),
             role="clerk",
             is_active=True,
@@ -131,6 +140,7 @@ def seed():
         clerk6 = User(
             full_name="Clerk Six",
             email="clerk6@test.com",
+            phone_number="+254 701 234 567",
             password_hash=hash_password("password123"),
             role="clerk",
             is_active=True,
@@ -139,8 +149,7 @@ def seed():
         )
 
         db.session.add_all([
-            merchant,
-            admin1, admin2, admin3,
+            merchant, admin1, admin2, admin3,
             clerk1, clerk2, clerk3, clerk4, clerk5, clerk6
         ])
         db.session.commit()
@@ -181,7 +190,6 @@ def seed():
         # -----------------------------------------------
         print("📋 Creating inventory entries...")
 
-        # Map clerks to their store products
         clerk_product_map = [
             (clerk1, store1_products),
             (clerk2, store1_products),
@@ -196,13 +204,12 @@ def seed():
 
         for clerk, products in clerk_product_map:
             for product in products:
-                # Create 2 entries per product per clerk over the last 7 days
-                for days_ago in [random.randint(0, 7), random.randint(0, 7)]:
+                for _ in range(2):  # 2 entries per product per clerk
                     qty_received = random.randint(50, 200)
-                    qty_spoilt = random.randint(0, 10)
+                    qty_spoilt = random.randint(0, 12)
                     qty_in_stock = qty_received - qty_spoilt
                     buying_price = round(random.uniform(20.0, 500.0), 2)
-                    selling_price = round(buying_price * random.uniform(1.1, 1.5), 2)
+                    selling_price = round(buying_price * random.uniform(1.1, 1.6), 2)
 
                     entry = InventoryEntry(
                         product_id=product.id,
@@ -213,7 +220,7 @@ def seed():
                         buying_price=buying_price,
                         selling_price=selling_price,
                         payment_status=random.choice(payment_options),
-                        recorded_at=datetime.utcnow() - timedelta(days=days_ago)
+                        recorded_at=datetime.utcnow() - timedelta(days=random.randint(0, 10))
                     )
                     entries.append(entry)
 
@@ -229,7 +236,7 @@ def seed():
 
         supply_requests = []
         for clerk, products in clerk_product_map:
-            for product in random.sample(products, k=2):  # 2 requests per clerk
+            for product in random.sample(products, k=2):
                 supply_requests.append(SupplyRequest(
                     product_id=product.id,
                     clerk_id=clerk.id,
@@ -240,44 +247,41 @@ def seed():
                         "Running low on stock",
                         "High demand this week",
                         "Stock finished earlier than expected",
-                        "Restocking for the weekend",
+                        "Restocking for weekend rush",
                         None
                     ]),
-                    created_at=datetime.utcnow() - timedelta(days=random.randint(0, 5))
+                    created_at=datetime.utcnow() - timedelta(days=random.randint(0, 7))
                 ))
 
         db.session.add_all(supply_requests)
         db.session.commit()
 
         # -----------------------------------------------
-        # DONE
+        # FINAL OUTPUT
         # -----------------------------------------------
-        print("")
-        print("✅ Database seeded successfully!")
-        print("")
-        print("=" * 45)
-        print("🔐 LOGIN CREDENTIALS (all use password123)")
-        print("=" * 45)
-        print("")
-        print("👑 MERCHANT")
-        print("   Email:    merchant@test.com")
-        print("   Password: password123")
-        print("")
+        print("\n✅ Database seeded successfully!\n")
+        print("=" * 60)
+        print("🔐 ALL ACCOUNTS USE THE SAME PASSWORD: password123")
+        print("=" * 60)
+        print("\n👑 MERCHANT")
+        print(f"   Email:    merchant@test.com")
+        print("   Password: password123\n")
+
         print("👔 ADMINS")
         print("   admin1@test.com  → Nairobi CBD Branch")
         print("   admin2@test.com  → Westlands Branch")
-        print("   admin3@test.com  → Mombasa Branch")
-        print("")
+        print("   admin3@test.com  → Mombasa Branch\n")
+
         print("📝 CLERKS")
         print("   clerk1@test.com  → Nairobi CBD Branch")
         print("   clerk2@test.com  → Nairobi CBD Branch")
         print("   clerk3@test.com  → Westlands Branch")
         print("   clerk4@test.com  → Westlands Branch")
         print("   clerk5@test.com  → Mombasa Branch")
-        print("   clerk6@test.com  → Mombasa Branch")
-        print("")
-        print("   All clerk passwords: password123")
-        print("=" * 45)
+        print("   clerk6@test.com  → Mombasa Branch\n")
+
+        print("All passwords: password123")
+        print("=" * 60)
 
 if __name__ == '__main__':
     seed()

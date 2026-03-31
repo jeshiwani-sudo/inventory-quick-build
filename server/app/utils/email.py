@@ -1,31 +1,38 @@
+# backend/app/utils/email.py
 from flask_mail import Message
 from app import mail
 from flask import current_app
 
-def send_invite_email(to_email, invite_link, role):
+def send_invite_email(to_email, invite_link, role, store_name="LocalShop"):
     try:
         msg = Message(
-            subject=f'You have been invited as {role.capitalize()} - Inventory App',
-            sender=current_app.config['MAIL_USERNAME'],
+            subject=f"Invitation to Join {store_name} as {role.capitalize()}",
+            sender=current_app.config.get('MAIL_DEFAULT_SENDER'),
             recipients=[to_email]
         )
-        msg.body = f'''
-Hello!
 
-You have been invited to join the Inventory App as a {role.capitalize()}.
+        # Better formatted email
+        msg.body = f"""
+Hello,
 
-Please click the link below to complete your registration.
-This link will expire in 24 hours.
+You have been invited to join **{store_name}** as a **{role.capitalize()}**.
+
+Please click the link below to complete your registration:
 
 {invite_link}
 
-If you did not expect this email, please ignore it.
+This link will expire in 24 hours.
 
-Thank you,
-Inventory App Team
-        '''
+If you did not request this invitation, please ignore this email.
+
+Best regards,
+{store_name} Team
+        """
+
         mail.send(msg)
+        print(f"✅ Email sent successfully to {to_email}")
         return True
+
     except Exception as e:
-        print(f"Email error: {e}")
+        print(f"❌ Failed to send email to {to_email}: {str(e)}")
         return False
