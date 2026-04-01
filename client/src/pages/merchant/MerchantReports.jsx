@@ -6,7 +6,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  LineChart, Line 
+  LineChart, Line, LabelList 
 } from 'recharts';
 
 const MerchantReports = () => {
@@ -34,13 +34,12 @@ const MerchantReports = () => {
       if (selectedStoreId) params.push(`store_id=${selectedStoreId}`);
       if (startDate) params.push(`start_date=${startDate}`);
       if (endDate) params.push(`end_date=${endDate}`);
-
       if (params.length) url += `?${params.join('&')}`;
 
       const res = await api.get(url);
       setSummary(res.data.summary || {});
 
-      // Trend endpoint missing → safe fallback
+      // Trend (safe fallback if 404)
       try {
         const trendRes = await api.get('/inventory/report/trend');
         setTrendData(trendRes.data.trend || []);
@@ -170,7 +169,7 @@ const MerchantReports = () => {
           </div>
         </div>
 
-        {/* Charts */}
+        {/* Charts - Improved for PDF */}
         <div id="report-charts" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="card">
             <h3 className="text-lg font-semibold mb-4">Store Performance</h3>
@@ -178,11 +177,22 @@ const MerchantReports = () => {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={trendData.length ? trendData : [{product_name: 'No Data', quantity_received: 0, quantity_in_stock: 0}]}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="product_name" />
+                  <XAxis 
+                    dataKey="product_name" 
+                    angle={-45} 
+                    textAnchor="end"
+                    height={80}
+                    interval={0}
+                    tick={{ fontSize: 11 }}
+                  />
                   <YAxis />
                   <Tooltip />
-                  <Bar dataKey="quantity_received" fill="#4F46E5" />
-                  <Bar dataKey="quantity_in_stock" fill="#10B981" />
+                  <Bar dataKey="quantity_received" fill="#4F46E5" name="Received">
+                    <LabelList dataKey="quantity_received" position="top" fontSize={10} />
+                  </Bar>
+                  <Bar dataKey="quantity_in_stock" fill="#10B981" name="In Stock">
+                    <LabelList dataKey="quantity_in_stock" position="top" fontSize={10} />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -194,7 +204,14 @@ const MerchantReports = () => {
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={trendData.length ? trendData : [{product_name: 'No Data', quantity_received: 0, quantity_in_stock: 0}]}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="product_name" />
+                  <XAxis 
+                    dataKey="product_name" 
+                    angle={-45} 
+                    textAnchor="end"
+                    height={80}
+                    interval={0}
+                    tick={{ fontSize: 11 }}
+                  />
                   <YAxis />
                   <Tooltip />
                   <Line type="monotone" dataKey="quantity_received" stroke="#4F46E5" strokeWidth={3} />
