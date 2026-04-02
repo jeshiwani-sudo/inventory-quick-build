@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { toast } from 'react-toastify';
@@ -9,50 +11,40 @@ const MerchantStores = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingStore, setEditingStore] = useState(null);
   const [form, setForm] = useState({ name: '', location: '' });
-  const [actionId, setActionId] = useState(null);
 
   useEffect(() => {
     fetchStores();
   }, []);
 
+  // feat: fetch all stores
   const fetchStores = async () => {
     setLoading(true);
     try {
       const res = await api.get('/stores/');
       setStores(res.data.stores || []);
-    } catch (err) {
+    } catch {
       toast.error('Failed to load stores');
     } finally {
       setLoading(false);
     }
   };
 
+  // feat: create or update store
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name || !form.location) {
-      return toast.error('Store name and location are required');
-    }
-
-    setActionId('save');
     try {
       if (editingStore) {
-        // Update existing store
         await api.put(`/stores/${editingStore.id}`, form);
-        toast.success('Store updated successfully');
+        toast.success('Store updated');
       } else {
-        // Create new store
         await api.post('/stores/', form);
-        toast.success('New store created successfully');
+        toast.success('Store created');
       }
-      
       setShowForm(false);
       setEditingStore(null);
-      setForm({ name: '', location: '' });
       fetchStores();
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to save store');
-    } finally {
-      setActionId(null);
+      toast.error('Failed to save store');
     }
   };
 
@@ -63,130 +55,65 @@ const MerchantStores = () => {
   };
 
   const handleDelete = async (store) => {
-    if (!window.confirm(`Delete store "${store.name}"? This action cannot be undone.`)) return;
+    if (!window.confirm(`Delete store "${store.name}"?`)) return;
 
-    setActionId(store.id);
     try {
       await api.delete(`/stores/${store.id}`);
-      toast.success(`Store "${store.name}" deleted successfully`);
+      toast.success('Store deleted');
       fetchStores();
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Cannot delete store. It may have users or products assigned.');
-    } finally {
-      setActionId(null);
+      toast.error('Cannot delete store with linked products or users');
     }
   };
 
   return (
     <DashboardLayout title="Manage Stores 🏪">
-      <div className="space-y-6">
-        <div className="card">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-800 dark:text-white">All Stores</h2>
-            <button
-              onClick={() => {
-                setEditingStore(null);
-                setForm({ name: '', location: '' });
-                setShowForm(true);
-              }}
-              className="btn-primary"
-            >
-              + Add New Store
-            </button>
-          </div>
-
-          {/* Add/Edit Form */}
-          {showForm && (
-            <form onSubmit={handleSubmit} className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-6 mb-8 space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Store Name *</label>
-                <input
-                  className="input-field"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="e.g. Westlands Branch"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location *</label>
-                <input
-                  className="input-field"
-                  value={form.location}
-                  onChange={(e) => setForm({ ...form, location: e.target.value })}
-                  placeholder="e.g. Westlands, Waiyaki Way"
-                  required
-                />
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button 
-                  type="submit" 
-                  className="btn-primary flex-1"
-                  disabled={actionId === 'save'}
-                >
-                  {actionId === 'save' ? 'Saving...' : editingStore ? 'Update Store' : 'Create Store'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowForm(false);
-                    setEditingStore(null);
-                  }}
-                  className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          )}
-
-          {/* Stores Table */}
-          {loading ? (
-            <div className="text-center py-16 text-gray-400">Loading stores...</div>
-          ) : stores.length === 0 ? (
-            <div className="text-center py-16 text-gray-400">
-              <p className="text-5xl mb-4">🏪</p>
-              <p>No stores yet. Add one above.</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[600px]">
-                <thead>
-                  <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <th className="text-left py-4 px-4 font-medium text-gray-500">Store Name</th>
-                    <th className="text-left py-4 px-4 font-medium text-gray-500">Location</th>
-                    <th className="text-left py-4 px-4 font-medium text-gray-500">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stores.map((store) => (
-                    <tr key={store.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
-                      <td className="py-4 px-4 font-medium text-gray-800 dark:text-white">{store.name}</td>
-                      <td className="py-4 px-4 text-gray-600 dark:text-gray-300">{store.location}</td>
-                      <td className="py-4 px-4">
-                        <div className="flex gap-3">
-                          <button
-                            onClick={() => handleEdit(store)}
-                            className="text-blue-600 hover:text-blue-700 text-sm font-medium px-4 py-1 rounded hover:bg-blue-50 transition-colors"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDelete(store)}
-                            disabled={actionId === store.id}
-                            className="text-red-600 hover:text-red-700 text-sm font-medium px-4 py-1 rounded hover:bg-red-50 transition-colors disabled:opacity-50"
-                          >
-                            {actionId === store.id ? 'Deleting...' : 'Delete'}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+      <div className="card">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold">All Stores</h2>
+          <button onClick={() => { setEditingStore(null); setForm({ name: '', location: '' }); setShowForm(true); }} className="btn-primary">
+            + Add New Store
+          </button>
         </div>
+
+        {showForm && (
+          /* Store Form Implementation */
+          <form onSubmit={handleSubmit} className="bg-gray-50 p-6 rounded-2xl mb-8">
+            <div>
+              <label className="block text-sm font-medium mb-1">Store Name</label>
+              <input className="input-field" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
+            </div>
+            <div className="mt-4">
+              <label className="block text-sm font-medium mb-1">Location</label>
+              <input className="input-field" value={form.location} onChange={e => setForm({...form, location: e.target.value})} required />
+            </div>
+            <button type="submit" className="btn-primary mt-6">
+              {editingStore ? 'Update Store' : 'Create Store'}
+            </button>
+          </form>
+        )}
+
+        <table className="w-full">
+          <thead>
+            <tr className="border-b">
+              <th className="text-left py-4">Store Name</th>
+              <th className="text-left py-4">Location</th>
+              <th className="text-left py-4">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {stores.map(store => (
+              <tr key={store.id} className="border-b hover:bg-gray-50">
+                <td className="py-4 font-medium">{store.name}</td>
+                <td className="py-4">{store.location}</td>
+                <td className="py-4">
+                  <button onClick={() => handleEdit(store)} className="text-blue-600 hover:text-blue-700 mr-4">Edit</button>
+                  <button onClick={() => handleDelete(store)} className="text-red-600 hover:text-red-700">Delete</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </DashboardLayout>
   );
