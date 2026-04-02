@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { toast } from 'react-toastify';
@@ -16,7 +15,6 @@ const MerchantStores = () => {
     fetchStores();
   }, []);
 
-  // feat: fetch all stores
   const fetchStores = async () => {
     setLoading(true);
     try {
@@ -29,7 +27,6 @@ const MerchantStores = () => {
     }
   };
 
-  // feat: create or update store
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -77,7 +74,6 @@ const MerchantStores = () => {
         </div>
 
         {showForm && (
-          /* Store Form Implementation */
           <form onSubmit={handleSubmit} className="bg-gray-50 p-6 rounded-2xl mb-8">
             <div>
               <label className="block text-sm font-medium mb-1">Store Name</label>
