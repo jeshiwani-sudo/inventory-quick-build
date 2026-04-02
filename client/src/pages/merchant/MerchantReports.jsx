@@ -1,8 +1,3 @@
-/**
- * Feature: Merchant Reports
- * Branch: feature/merchant-reports
- * Changes for new store_products junction table: reports now aggregate across store_products
- */
 
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
