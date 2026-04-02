@@ -5,11 +5,11 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import { toast } from 'react-toastify';
 import api from '../../utils/api';
 
+// Changed for new store_products junction table: use store_product_id instead of product_id
 const RecordEntry = () => {
   const navigate = useNavigate();
-  const [products, setProducts] = useState([]);
+  const [storeProducts, setStoreProducts] = useState([]);   // Changed: now fetching store_products instead of products
   const [submitting, setSubmitting] = useState(false);
-
   const { register, handleSubmit, formState: { errors }, reset } = useForm({
     defaultValues: {
       quantity_spoilt: 0,
@@ -18,22 +18,22 @@ const RecordEntry = () => {
   });
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchStoreProducts = async () => {
       try {
-        const res = await api.get('/products/');
-        setProducts(res.data.products || []);
+        const res = await api.get('/store-products/');   // Changed for new schema
+        setStoreProducts(res.data.store_products || []);
       } catch {
         toast.error('Failed to load products');
       }
     };
-    fetchProducts();
+    fetchStoreProducts();
   }, []);
 
   const onSubmit = async (data) => {
     setSubmitting(true);
     try {
       await api.post('/inventory/', {
-        product_id: parseInt(data.product_id),
+        store_product_id: parseInt(data.store_product_id),   // Changed for new junction table
         quantity_received: parseInt(data.quantity_received),
         quantity_in_stock: parseInt(data.quantity_in_stock),
         quantity_spoilt: parseInt(data.quantity_spoilt || 0),
@@ -41,7 +41,6 @@ const RecordEntry = () => {
         selling_price: parseFloat(data.selling_price),
         payment_status: data.payment_status
       });
-
       toast.success('Entry recorded successfully ✅');
       reset();
       navigate('/clerk/my-entries');
@@ -57,24 +56,23 @@ const RecordEntry = () => {
       <div className="max-w-2xl mx-auto">
         <div className="card">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Product *
+                Store Product *
               </label>
               <select
                 className="input-field"
-                {...register('product_id', { required: 'Please select a product' })}
+                {...register('store_product_id', { required: 'Please select a product' })}
               >
-                <option value="">Select a product...</option>
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
+                <option value="">Select a product in this store...</option>
+                {storeProducts.map((sp) => (
+                  <option key={sp.id} value={sp.id}>
+                    {sp.product_name}
                   </option>
                 ))}
               </select>
-              {errors.product_id && (
-                <p className="text-red-500 text-sm mt-1">{errors.product_id.message}</p>
+              {errors.store_product_id && (
+                <p className="text-red-500 text-sm mt-1">{errors.store_product_id.message}</p>
               )}
             </div>
 
@@ -89,9 +87,6 @@ const RecordEntry = () => {
                   className="input-field"
                   {...register('quantity_received', { required: 'Required', min: 1 })}
                 />
-                {errors.quantity_received && (
-                  <p className="text-red-500 text-sm mt-1">{errors.quantity_received.message}</p>
-                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -174,7 +169,6 @@ const RecordEntry = () => {
                 Cancel
               </button>
             </div>
-
           </form>
         </div>
       </div>
