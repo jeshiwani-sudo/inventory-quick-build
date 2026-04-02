@@ -1,138 +1,74 @@
+
 import React, { useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { fetchSummary } from '../../store/slices/inventorySlice';
 import DashboardLayout from '../../components/layout/DashboardLayout';
-import StatCard from '../../components/common/StatCard';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend } from 'recharts';
+import { toast } from 'react-toastify';
 import api from '../../utils/api';
+import StatCard from '../../components/common/StatCard';
 
 const MerchantDashboard = () => {
-  const dispatch = useDispatch();
-  const { summary } = useSelector((state) => state.inventory);
-  
-  const [stores, setStores] = useState([]);
-  const [storeReports, setStoreReports] = useState([]);
+  const [summary, setSummary] = useState({});
+  const [trendData, setTrendData] = useState([]);
 
   useEffect(() => {
-    dispatch(fetchSummary());
-    loadStores();
-  }, [dispatch]);
+    fetchSummary();
+    fetchTrend();
+  }, []);
 
-  const loadStores = async () => {
+  const fetchSummary = async () => {
     try {
-      const res = await api.get('/stores/');
-      setStores(res.data.stores || []);
+      const res = await api.get('/inventory/report/summary');
+      setSummary(res.data.summary || {});
+    } catch {
+      toast.error('Failed to load summary');
+    }
+  };
 
-      const reports = await Promise.all(
-        res.data.stores.map(async (store) => {
-          const r = await api.get(`/inventory/report/summary?store_id=${store.id}`);
-          return {
-            name: store.name,
-            ...r.data.summary
-          };
-        })
-      );
-      setStoreReports(reports);
-    } catch (err) {
-      console.error(err);
+  const fetchTrend = async () => {
+    try {
+      const res = await api.get('/inventory/report/trend');
+      setTrendData(res.data.trend || []);
+    } catch {
+      toast.error('Failed to load trend data');
     }
   };
 
   return (
-    <DashboardLayout title={`Merchant Overview 👑`}>
-      {/* Stats - Responsive Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-        <StatCard
-          title="Total Stores"
-          value={stores.length}
-          icon="🏪"
-          color="bg-purple-500"
-        />
-        <StatCard
-          title="Total Items in Stock"
-          value={summary?.total_items_in_stock || 0}
-          icon="📦"
-          color="bg-blue-500"
-        />
-        <StatCard
-          title="Total Paid"
-          value={`KES ${summary?.total_paid_amount || 0}`}
-          icon="✅"
-          color="bg-green-500"
-        />
-        <StatCard
-          title="Total Unpaid"
-          value={`KES ${summary?.total_unpaid_amount || 0}`}
-          icon="⏳"
-          color="bg-red-500"
-        />
+    <DashboardLayout title="Merchant Dashboard 📊">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <StatCard title="Total Received" value={summary.total_items_received || 0} icon="📥" color="bg-blue-500" />
+        <StatCard title="In Stock" value={summary.total_items_in_stock || 0} icon="📦" color="bg-green-500" />
+        <StatCard title="Spoilt" value={summary.total_items_spoilt || 0} icon="⚠️" color="bg-red-500" />
+        <StatCard title="Unpaid (KES)" value={`KES ${(summary.total_unpaid_amount || 0).toLocaleString()}`} icon="💰" color="bg-orange-500" />
       </div>
 
-      {/* Charts - Responsive Layout */}
-      {storeReports.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className="card">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">
-              Store Stock Comparison
-            </h2>
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={storeReports}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="total_items_in_stock" fill="#4F46E5" name="In Stock" radius={[4,4,0,0]} />
-                <Bar dataKey="total_items_spoilt" fill="#EF4444" name="Spoilt" radius={[4,4,0,0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="card">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">
-              Payment Status per Store
-            </h2>
-            <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={storeReports}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="total_paid_amount" stroke="#10B981" strokeWidth={2} name="Paid (KES)" dot={{ r: 5 }} />
-                <Line type="monotone" dataKey="total_unpaid_amount" stroke="#EF4444" strokeWidth={2} name="Unpaid (KES)" dot={{ r: 5 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="card">
+          <h3 className="text-lg font-semibold mb-4">Store Performance</h3>
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart data={trendData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="product_name" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="quantity_received" fill="#4F46E5" name="Received" />
+              <Bar dataKey="quantity_in_stock" fill="#10B981" name="In Stock" />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
-      )}
 
-      {/* Stores List - Responsive Grid */}
-      <div className="card">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">All Stores</h2>
-        {stores.length === 0 ? (
-          <div className="text-center py-10 text-gray-400">
-            <p className="text-4xl mb-3">🏪</p>
-            <p>No stores yet. Create your first store!</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {stores.map((store) => (
-              <div key={store.id} className="border border-gray-200 rounded-xl p-5 hover:border-primary transition-all">
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="text-3xl">🏪</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-800 truncate">{store.name}</p>
-                    <p className="text-sm text-gray-500 truncate">{store.location || 'No location'}</p>
-                  </div>
-                </div>
-                <span className={`text-xs px-3 py-1 rounded-full ${store.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                  {store.is_active ? 'Active' : 'Inactive'}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
+        <div className="card">
+          <h3 className="text-lg font-semibold mb-4">Trend Over Time</h3>
+          <ResponsiveContainer width="100%" height={320}>
+            <LineChart data={trendData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="product_name" />
+              <YAxis />
+              <Tooltip />
+              <Line type="monotone" dataKey="quantity_received" stroke="#4F46E5" strokeWidth={3} />
+              <Line type="monotone" dataKey="quantity_in_stock" stroke="#10B981" strokeWidth={3} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       </div>
     </DashboardLayout>
   );
