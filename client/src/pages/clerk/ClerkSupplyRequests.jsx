@@ -1,3 +1,9 @@
+/**
+ * Feature: Clerk Supply Requests
+ * Branch: feature/clerk-supply-requests
+ * Changed for new store_products junction table: use store_product_id instead of product_id
+ */
+
 import React, { useEffect, useState, useCallback } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { toast } from 'react-toastify';
@@ -5,10 +11,10 @@ import api from '../../utils/api';
 
 const ClerkSupplyRequests = () => {
   const [requests, setRequests] = useState([]);
-  const [products, setProducts] = useState([]);
+  const [storeProducts, setStoreProducts] = useState([]);   // Changed for new schema
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ product_id: '', quantity_requested: '', note: '' });
+  const [form, setForm] = useState({ store_product_id: '', quantity_requested: '', note: '' });
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -25,10 +31,10 @@ const ClerkSupplyRequests = () => {
     }
   }, [page]);
 
-  const fetchProducts = useCallback(async () => {
+  const fetchStoreProducts = useCallback(async () => {
     try {
-      const res = await api.get('/products/');
-      setProducts(res.data.products || []);
+      const res = await api.get('/store-products/');   // Changed for new schema
+      setStoreProducts(res.data.store_products || []);
     } catch {
       toast.error('Failed to load products');
     }
@@ -36,24 +42,23 @@ const ClerkSupplyRequests = () => {
 
   useEffect(() => {
     fetchRequests();
-    fetchProducts();
-  }, [fetchRequests, fetchProducts]);
+    fetchStoreProducts();
+  }, [fetchRequests, fetchStoreProducts]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.product_id || !form.quantity_requested) {
+    if (!form.store_product_id || !form.quantity_requested) {
       return toast.error('Product and quantity are required');
     }
-
     try {
       await api.post('/supply-requests/', {
-        product_id: parseInt(form.product_id),
+        store_product_id: parseInt(form.store_product_id),   // Changed for new schema
         quantity_requested: parseInt(form.quantity_requested),
         note: form.note.trim()
       });
       toast.success('Supply request submitted successfully ✅');
       setShowForm(false);
-      setForm({ product_id: '', quantity_requested: '', note: '' });
+      setForm({ store_product_id: '', quantity_requested: '', note: '' });
       fetchRequests();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to submit request');
@@ -72,7 +77,7 @@ const ClerkSupplyRequests = () => {
         <div className="card">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold text-gray-800 dark:text-white">My Supply Requests</h2>
-            <button 
+            <button
               onClick={() => setShowForm(!showForm)}
               className="btn-primary"
             >
@@ -86,13 +91,13 @@ const ClerkSupplyRequests = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Product *</label>
                 <select
                   className="input-field"
-                  value={form.product_id}
-                  onChange={e => setForm({ ...form, product_id: e.target.value })}
+                  value={form.store_product_id}
+                  onChange={e => setForm({ ...form, store_product_id: e.target.value })}
                   required
                 >
-                  <option value="">Select product...</option>
-                  {products.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
+                  <option value="">Select product in this store...</option>
+                  {storeProducts.map(sp => (
+                    <option key={sp.id} value={sp.id}>{sp.product_name}</option>
                   ))}
                 </select>
               </div>
@@ -160,10 +165,9 @@ const ClerkSupplyRequests = () => {
                   </tbody>
                 </table>
               </div>
-
               {totalPages > 1 && (
                 <div className="flex justify-center gap-3 mt-6">
-                  <button 
+                  <button
                     onClick={() => setPage(p => Math.max(1, p - 1))}
                     disabled={page === 1}
                     className="px-4 py-2 border rounded-lg disabled:opacity-50"
@@ -171,7 +175,7 @@ const ClerkSupplyRequests = () => {
                     ← Previous
                   </button>
                   <span className="px-4 py-2 text-sm">Page {page} of {totalPages}</span>
-                  <button 
+                  <button
                     onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                     disabled={page === totalPages}
                     className="px-4 py-2 border rounded-lg disabled:opacity-50"
