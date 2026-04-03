@@ -5,25 +5,26 @@ class InventoryEntry(db.Model):
     __tablename__ = 'inventory_entries'
 
     id = db.Column(db.Integer, primary_key=True)
-    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    # Changed for new store_products junction table: product_id → store_product_id
+    store_product_id = db.Column(db.Integer, db.ForeignKey('store_products.id'), nullable=False)
     clerk_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     quantity_received = db.Column(db.Integer, default=0)
     quantity_in_stock = db.Column(db.Integer, default=0)
     quantity_spoilt = db.Column(db.Integer, default=0)
     buying_price = db.Column(db.Float, nullable=False)
     selling_price = db.Column(db.Float, nullable=False)
-    payment_status = db.Column(db.String(20), default='unpaid')  # 'paid' or 'unpaid'
+    payment_status = db.Column(db.String(20), default='unpaid')
     recorded_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Relationships
-    product = db.relationship('Product', back_populates='inventory_entries')
+    # Relationships - Updated for new junction table
+    store_product = db.relationship('StoreProduct', back_populates='inventory_entries')
     clerk = db.relationship('User', back_populates='inventory_entries')
 
     def to_dict(self):
         return {
             'id': self.id,
-            'product_id': self.product_id,
-            'product_name': self.product.name if self.product else None,
+            'store_product_id': self.store_product_id,
+            'product_name': self.store_product.product.name if self.store_product and self.store_product.product else None,
             'clerk_id': self.clerk_id,
             'clerk_name': self.clerk.full_name if self.clerk else None,
             'quantity_received': self.quantity_received,
