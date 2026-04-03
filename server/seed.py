@@ -2,6 +2,7 @@ from app import create_app, db
 from app.models.user import User
 from app.models.store import Store
 from app.models.product import Product
+from app.models.store_product import StoreProduct
 from app.models.inventory_entry import InventoryEntry
 from app.models.supply_request import SupplyRequest
 import bcrypt
@@ -18,9 +19,10 @@ def seed():
         # -----------------------------------------------
         # CLEAR EXISTING DATA (in correct order)
         # -----------------------------------------------
-        print("🗑️  Clearing existing data...")
+        print("🗑️ Clearing existing data...")
         SupplyRequest.query.delete()
         InventoryEntry.query.delete()
+        StoreProduct.query.delete()
         Product.query.delete()
         User.query.delete()
         Store.query.delete()
@@ -41,7 +43,6 @@ def seed():
         # CREATE USERS (All passwords = password123)
         # -----------------------------------------------
         print("👥 Creating users...")
-
         # Merchant
         merchant = User(
             full_name="James Mwangi",
@@ -53,7 +54,6 @@ def seed():
             is_verified=True,
             store_id=None
         )
-
         # Admins
         admin1 = User(
             full_name="Admin One",
@@ -85,7 +85,6 @@ def seed():
             is_verified=True,
             store_id=store3.id
         )
-
         # Clerks
         clerk1 = User(
             full_name="Clerk One",
@@ -155,56 +154,68 @@ def seed():
         db.session.commit()
 
         # -----------------------------------------------
-        # CREATE PRODUCTS
+        # CREATE GLOBAL PRODUCTS
         # -----------------------------------------------
-        print("📦 Creating products...")
-
-        store1_products = [
-            Product(name="Sugar 1kg", description="White refined sugar", store_id=store1.id),
-            Product(name="Maize Flour 2kg", description="Unga wa mahindi", store_id=store1.id),
-            Product(name="Cooking Oil 1L", description="Refined sunflower oil", store_id=store1.id),
-            Product(name="Rice 5kg", description="Long grain white rice", store_id=store1.id),
-            Product(name="Milk 500ml", description="Fresh whole milk", store_id=store1.id),
-        ]
-        store2_products = [
-            Product(name="Bread Loaf", description="Sliced white bread", store_id=store2.id),
-            Product(name="Eggs (tray)", description="30 eggs per tray", store_id=store2.id),
-            Product(name="Butter 250g", description="Salted butter", store_id=store2.id),
-            Product(name="Tea Leaves 100g", description="Kenyan loose tea", store_id=store2.id),
-            Product(name="Salt 1kg", description="Iodized table salt", store_id=store2.id),
-        ]
-        store3_products = [
-            Product(name="Tomatoes 1kg", description="Fresh red tomatoes", store_id=store3.id),
-            Product(name="Onions 1kg", description="Yellow onions", store_id=store3.id),
-            Product(name="Beef 1kg", description="Fresh minced beef", store_id=store3.id),
-            Product(name="Chicken (whole)", description="Fresh dressed chicken", store_id=store3.id),
-            Product(name="Potatoes 2kg", description="Irish potatoes", store_id=store3.id),
+        print("📦 Creating global products...")
+        products_data = [
+            ("Sugar 1kg", "White refined sugar"),
+            ("Maize Flour 2kg", "Unga wa mahindi"),
+            ("Cooking Oil 1L", "Refined sunflower oil"),
+            ("Rice 5kg", "Long grain white rice"),
+            ("Milk 500ml", "Fresh whole milk"),
+            ("Bread Loaf", "Sliced white bread"),
+            ("Eggs (tray)", "30 eggs per tray"),
+            ("Butter 250g", "Salted butter"),
+            ("Tea Leaves 100g", "Kenyan loose tea"),
+            ("Salt 1kg", "Iodized table salt"),
+            ("Tomatoes 1kg", "Fresh red tomatoes"),
+            ("Onions 1kg", "Yellow onions"),
+            ("Beef 1kg", "Fresh minced beef"),
+            ("Chicken (whole)", "Fresh dressed chicken"),
+            ("Potatoes 2kg", "Irish potatoes"),
         ]
 
-        all_products = store1_products + store2_products + store3_products
+        all_products = []
+        for name, desc in products_data:
+            product = Product(name=name, description=desc)
+            all_products.append(product)
+
         db.session.add_all(all_products)
         db.session.commit()
 
         # -----------------------------------------------
-        # CREATE INVENTORY ENTRIES
+        # LINK PRODUCTS TO STORES via StoreProduct junction table
+        # -----------------------------------------------
+        print("🔗 Linking products to stores via junction table...")
+        for product in all_products:
+            sp1 = StoreProduct(store_id=store1.id, product_id=product.id)
+            sp2 = StoreProduct(store_id=store2.id, product_id=product.id)
+            sp3 = StoreProduct(store_id=store3.id, product_id=product.id)
+            db.session.add_all([sp1, sp2, sp3])
+
+        db.session.commit()
+
+        # -----------------------------------------------
+        # CREATE INVENTORY ENTRIES (using store_product_id)
         # -----------------------------------------------
         print("📋 Creating inventory entries...")
-
         clerk_product_map = [
-            (clerk1, store1_products),
-            (clerk2, store1_products),
-            (clerk3, store2_products),
-            (clerk4, store2_products),
-            (clerk5, store3_products),
-            (clerk6, store3_products),
+            (clerk1, store1.id),
+            (clerk2, store1.id),
+            (clerk3, store2.id),
+            (clerk4, store2.id),
+            (clerk5, store3.id),
+            (clerk6, store3.id),
         ]
 
         entries = []
         payment_options = ['paid', 'unpaid']
 
-        for clerk, products in clerk_product_map:
-            for product in products:
-                for _ in range(2):  # 2 entries per product per clerk
+        for clerk, store_id in clerk_product_map:
+            # Get StoreProduct links for this store
+            store_products = StoreProduct.query.filter_by(store_id=store_id).all()
+            for sp in store_products:
+                for _ in range(2):  # 2 entries per product
                     qty_received = random.randint(50, 200)
                     qty_spoilt = random.randint(0, 12)
                     qty_in_stock = qty_received - qty_spoilt
@@ -212,7 +223,7 @@ def seed():
                     selling_price = round(buying_price * random.uniform(1.1, 1.6), 2)
 
                     entry = InventoryEntry(
-                        product_id=product.id,
+                        store_product_id=sp.id,
                         clerk_id=clerk.id,
                         quantity_received=qty_received,
                         quantity_in_stock=qty_in_stock,
@@ -228,26 +239,26 @@ def seed():
         db.session.commit()
 
         # -----------------------------------------------
-        # CREATE SUPPLY REQUESTS
+        # CREATE SUPPLY REQUESTS (using store_product_id)
         # -----------------------------------------------
         print("🚚 Creating supply requests...")
-
         status_options = ['pending', 'approved', 'declined']
-
         supply_requests = []
-        for clerk, products in clerk_product_map:
-            for product in random.sample(products, k=2):
+
+        for clerk, store_id in clerk_product_map:
+            store_products = StoreProduct.query.filter_by(store_id=store_id).all()
+            for sp in random.sample(store_products, k=min(2, len(store_products))):
                 supply_requests.append(SupplyRequest(
-                    product_id=product.id,
+                    store_product_id=sp.id,
                     clerk_id=clerk.id,
-                    store_id=clerk.store_id,
+                    store_id=store_id,
                     quantity_requested=random.randint(10, 100),
                     status=random.choice(status_options),
                     note=random.choice([
                         "Running low on stock",
                         "High demand this week",
                         "Stock finished earlier than expected",
-                        "Restocking for weekend rush",
+                        "Restocking for the weekend",
                         None
                     ]),
                     created_at=datetime.utcnow() - timedelta(days=random.randint(0, 7))
@@ -257,30 +268,26 @@ def seed():
         db.session.commit()
 
         # -----------------------------------------------
-        # FINAL OUTPUT
+        # DONE
         # -----------------------------------------------
-        print("\n✅ Database seeded successfully!\n")
+        print("\n✅ Database seeded successfully with new store_products junction table!\n")
         print("=" * 60)
         print("🔐 ALL ACCOUNTS USE THE SAME PASSWORD: password123")
         print("=" * 60)
         print("\n👑 MERCHANT")
-        print(f"   Email:    merchant@test.com")
+        print("   Email: merchant@test.com")
         print("   Password: password123\n")
-
         print("👔 ADMINS")
-        print("   admin1@test.com  → Nairobi CBD Branch")
-        print("   admin2@test.com  → Westlands Branch")
-        print("   admin3@test.com  → Mombasa Branch\n")
-
+        print("   admin1@test.com → Nairobi CBD Branch")
+        print("   admin2@test.com → Westlands Branch")
+        print("   admin3@test.com → Mombasa Branch\n")
         print("📝 CLERKS")
-        print("   clerk1@test.com  → Nairobi CBD Branch")
-        print("   clerk2@test.com  → Nairobi CBD Branch")
-        print("   clerk3@test.com  → Westlands Branch")
-        print("   clerk4@test.com  → Westlands Branch")
-        print("   clerk5@test.com  → Mombasa Branch")
-        print("   clerk6@test.com  → Mombasa Branch\n")
-
-        print("All passwords: password123")
+        print("   clerk1@test.com → Nairobi CBD Branch")
+        print("   clerk2@test.com → Nairobi CBD Branch")
+        print("   clerk3@test.com → Westlands Branch")
+        print("   clerk4@test.com → Westlands Branch")
+        print("   clerk5@test.com → Mombasa Branch")
+        print("   clerk6@test.com → Mombasa Branch\n")
         print("=" * 60)
 
 if __name__ == '__main__':
