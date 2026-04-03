@@ -10,10 +10,8 @@ class Product(db.Model):
     image_url = db.Column(db.String(300), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Changed for new store_products junction table: removed store_id (Product is now global)
-    # Relationships
+    # Relationships - Changed for new store_products junction table
     store_products = db.relationship('StoreProduct', back_populates='product', cascade='all, delete-orphan')
-    inventory_entries = db.relationship('InventoryEntry', back_populates='store_product')
 
     def to_dict(self):
         return {

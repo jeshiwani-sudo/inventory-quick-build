@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from app import db
 from app.models.inventory_entry import InventoryEntry
 from app.models.store_product import StoreProduct
+from app.models.product import Product
 from app.models.user import User
 from sqlalchemy import func
 from datetime import datetime
@@ -150,12 +151,10 @@ def get_summary():
     elif role == 'admin':
         if not current_user or not current_user.store_id:
             return jsonify({'error': 'Admin not assigned to any store'}), 403
-        entries = InventoryEntry.query.join(StoreProduct)\
-            .filter(StoreProduct.store_id == current_user.store_id).all()
+        entries = InventoryEntry.query.join(StoreProduct).filter(StoreProduct.store_id == current_user.store_id).all()
     else:  # Merchant
         if store_id:
-            entries = InventoryEntry.query.join(StoreProduct)\
-                .filter(StoreProduct.store_id == store_id).all()
+            entries = InventoryEntry.query.join(StoreProduct).filter(StoreProduct.store_id == store_id).all()
         else:
             entries = InventoryEntry.query.all()
 
@@ -177,7 +176,7 @@ def get_summary():
     }), 200
 
 # -----------------------------------------------
-# REPORT TREND
+# REPORT TREND (Fixed - clean joins)
 # -----------------------------------------------
 @inventory_bp.route('/report/trend', methods=['GET'])
 @jwt_required()
@@ -188,12 +187,12 @@ def report_trend():
     current_user = db.session.get(User, current_user_id)
     store_id = request.args.get('store_id', type=int)
 
+    # Clean and correct join chain
     query = db.session.query(
-        StoreProduct.id.label('store_product_id'),
         Product.name.label('product_name'),
         func.sum(InventoryEntry.quantity_received).label('quantity_received'),
         func.sum(InventoryEntry.quantity_in_stock).label('quantity_in_stock')
-    ).join(InventoryEntry, InventoryEntry.store_product_id == StoreProduct.id)\
+    ).join(StoreProduct, StoreProduct.id == InventoryEntry.store_product_id)\
      .join(Product, Product.id == StoreProduct.product_id)
 
     if role == 'clerk':
@@ -205,7 +204,7 @@ def report_trend():
     elif role == 'merchant' and store_id:
         query = query.filter(StoreProduct.store_id == store_id)
 
-    trend = query.group_by(StoreProduct.id, Product.name)\
+    trend = query.group_by(Product.name)\
                  .order_by(func.sum(InventoryEntry.quantity_received).desc())\
                  .limit(10).all()
 

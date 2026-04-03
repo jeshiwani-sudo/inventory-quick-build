@@ -5,7 +5,6 @@ class InventoryEntry(db.Model):
     __tablename__ = 'inventory_entries'
 
     id = db.Column(db.Integer, primary_key=True)
-    # Changed for new store_products junction table: product_id → store_product_id
     store_product_id = db.Column(db.Integer, db.ForeignKey('store_products.id'), nullable=False)
     clerk_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     quantity_received = db.Column(db.Integer, default=0)
