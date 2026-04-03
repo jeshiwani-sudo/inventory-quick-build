@@ -6,19 +6,24 @@ import { useSelector } from 'react-redux';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 
-// Dashboards
+// Landing Page
+import LandingPage from './pages/LandingPage';   // ← Your landing page
+
+// Clerk Pages
 import ClerkDashboard from './pages/clerk/ClerkDashboard';
 import RecordEntry from './pages/clerk/RecordEntry';
-import MyEntries from './pages/clerk/MyEntries';
+import ClerkMyEntries from './pages/clerk/ClerkMyEntries';
 import ClerkSupplyRequests from './pages/clerk/ClerkSupplyRequests';
 
+// Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminProducts from './pages/admin/AdminProducts';
 import AdminInventory from './pages/admin/AdminInventory';
 import AdminSupplyRequests from './pages/admin/AdminSupplyRequests';
 import AdminClerks from './pages/admin/AdminClerks';
-import AdminReports from './pages/admin/AdminReports';   // ← NEW
+import AdminReports from './pages/admin/AdminReports';
 
+// Merchant Pages
 import MerchantDashboard from './pages/merchant/MerchantDashboard';
 import MerchantStores from './pages/merchant/MerchantStores';
 import MerchantAdmins from './pages/merchant/MerchantAdmins';
@@ -28,8 +33,9 @@ import MerchantReports from './pages/merchant/MerchantReports';
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, token } = useSelector((state) => state.auth);
   if (!token || !user) return <Navigate to="/login" replace />;
-  if (allowedRoles && !allowedRoles.includes(user.role))
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
     return <Navigate to="/login" replace />;
+  }
   return children;
 };
 
@@ -37,10 +43,12 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Public */}
+        {/* Landing Page (Root) */}
+        <Route path="/" element={<LandingPage />} />
+
+        {/* Auth Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/" element={<Navigate to="/login" replace />} />
 
         {/* Clerk Routes */}
         <Route path="/clerk/dashboard" element={
@@ -55,7 +63,7 @@ function App() {
         } />
         <Route path="/clerk/my-entries" element={
           <ProtectedRoute allowedRoles={['clerk']}>
-            <MyEntries />
+            <ClerkMyEntries />
           </ProtectedRoute>
         } />
         <Route path="/clerk/supply-requests" element={
@@ -90,7 +98,7 @@ function App() {
             <AdminClerks />
           </ProtectedRoute>
         } />
-        <Route path="/admin/reports" element={   {/* ← NEW ROUTE */}
+        <Route path="/admin/reports" element={
           <ProtectedRoute allowedRoles={['admin']}>
             <AdminReports />
           </ProtectedRoute>
