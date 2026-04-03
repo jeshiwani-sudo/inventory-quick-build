@@ -8,12 +8,12 @@ class Product(db.Model):
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=True)
     image_url = db.Column(db.String(300), nullable=True)
-    store_id = db.Column(db.Integer, db.ForeignKey('stores.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    # Changed for new store_products junction table: removed store_id (Product is now global)
     # Relationships
-    store = db.relationship('Store', back_populates='products')
-    inventory_entries = db.relationship('InventoryEntry', back_populates='product')
+    store_products = db.relationship('StoreProduct', back_populates='product', cascade='all, delete-orphan')
+    inventory_entries = db.relationship('InventoryEntry', back_populates='store_product')
 
     def to_dict(self):
         return {
@@ -21,6 +21,5 @@ class Product(db.Model):
             'name': self.name,
             'description': self.description,
             'image_url': self.image_url,
-            'store_id': self.store_id,
             'created_at': self.created_at.strftime('%B %d, %Y') if self.created_at else None
         }
