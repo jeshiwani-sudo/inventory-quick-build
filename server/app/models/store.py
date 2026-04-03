@@ -12,8 +12,10 @@ class Store(db.Model):
 
     # Relationships
     users = db.relationship('User', back_populates='store', cascade='all, delete-orphan')
-    products = db.relationship('Product', back_populates='store', cascade='all, delete-orphan')
     supply_requests = db.relationship('SupplyRequest', back_populates='store', cascade='all, delete-orphan')
+    
+    # Changed for new store_products junction table: added relationship to junction table
+    store_products = db.relationship('StoreProduct', back_populates='store', cascade='all, delete-orphan')
 
     def to_dict(self):
         return {
