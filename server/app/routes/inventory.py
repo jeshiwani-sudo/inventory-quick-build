@@ -2,12 +2,12 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from app import db
 from app.models.inventory_entry import InventoryEntry
-from app.models.product import Product
+from app.models.store_product import StoreProduct
 from app.models.user import User
 from sqlalchemy import func
+from datetime import datetime
 
 inventory_bp = Blueprint('inventory', __name__)
-
 
 # -----------------------------------------------
 # CREATE AN INVENTORY ENTRY (Clerk only)
@@ -22,17 +22,17 @@ def create_entry():
     current_user_id = get_jwt_identity()
     data = request.get_json()
 
-    required = ['product_id', 'quantity_received', 'buying_price', 'selling_price']
+    required = ['store_product_id', 'quantity_received', 'buying_price', 'selling_price']
     missing = [f for f in required if f not in data or not data[f]]
     if missing:
         return jsonify({'error': f'Missing fields: {", ".join(missing)}'}), 400
 
-    product = db.session.get(Product, data['product_id'])
-    if not product:
-        return jsonify({'error': 'Product not found'}), 404
+    store_product = db.session.get(StoreProduct, data['store_product_id'])
+    if not store_product:
+        return jsonify({'error': 'Product not found in store'}), 404
 
     entry = InventoryEntry(
-        product_id=data['product_id'],
+        store_product_id=data['store_product_id'],
         clerk_id=current_user_id,
         quantity_received=int(data['quantity_received']),
         quantity_in_stock=int(data.get('quantity_in_stock', data['quantity_received'])),
@@ -41,7 +41,6 @@ def create_entry():
         selling_price=float(data['selling_price']),
         payment_status=data.get('payment_status', 'unpaid')
     )
-
     db.session.add(entry)
     db.session.commit()
 
@@ -49,7 +48,6 @@ def create_entry():
         'message': 'Inventory entry recorded successfully ✅',
         'entry': entry.to_dict()
     }), 201
-
 
 # -----------------------------------------------
 # GET ALL ENTRIES (paginated)
@@ -61,7 +59,6 @@ def get_entries():
     current_user = db.session.get(User, current_user_id)
     claims = get_jwt()
     role = claims.get('role')
-
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
     payment_status = request.args.get('payment_status')
@@ -71,8 +68,7 @@ def get_entries():
     elif role == 'admin':
         if not current_user or not current_user.store_id:
             return jsonify({'error': 'Admin not assigned to any store'}), 403
-        store_product_ids = [p.id for p in Product.query.filter_by(store_id=current_user.store_id).all()]
-        query = InventoryEntry.query.filter(InventoryEntry.product_id.in_(store_product_ids))
+        query = InventoryEntry.query.join(StoreProduct).filter(StoreProduct.store_id == current_user.store_id)
     else:  # Merchant
         query = InventoryEntry.query
 
@@ -90,7 +86,6 @@ def get_entries():
         'current_page': entries.page
     }), 200
 
-
 # -----------------------------------------------
 # GET MY ENTRIES (for Clerk Dashboard)
 # -----------------------------------------------
@@ -99,12 +94,10 @@ def get_entries():
 def get_my_entries():
     current_user_id = get_jwt_identity()
     claims = get_jwt()
-
     if claims.get('role') != 'clerk':
         return jsonify({'error': 'Only clerks can access my-entries'}), 403
 
     limit = request.args.get('limit', 6, type=int)
-
     entries = InventoryEntry.query.filter_by(clerk_id=current_user_id)\
         .order_by(InventoryEntry.recorded_at.desc())\
         .limit(limit).all()
@@ -112,7 +105,6 @@ def get_my_entries():
     return jsonify({
         'entries': [e.to_dict() for e in entries]
     }), 200
-
 
 # -----------------------------------------------
 # UPDATE PAYMENT STATUS
@@ -141,7 +133,6 @@ def update_payment_status(entry_id):
         'entry': entry.to_dict()
     }), 200
 
-
 # -----------------------------------------------
 # REPORT SUMMARY
 # -----------------------------------------------
@@ -152,7 +143,6 @@ def get_summary():
     current_user = db.session.get(User, current_user_id)
     claims = get_jwt()
     role = claims.get('role')
-
     store_id = request.args.get('store_id', type=int)
 
     if role == 'clerk':
@@ -160,12 +150,12 @@ def get_summary():
     elif role == 'admin':
         if not current_user or not current_user.store_id:
             return jsonify({'error': 'Admin not assigned to any store'}), 403
-        store_product_ids = [p.id for p in Product.query.filter_by(store_id=current_user.store_id).all()]
-        entries = InventoryEntry.query.filter(InventoryEntry.product_id.in_(store_product_ids)).all()
+        entries = InventoryEntry.query.join(StoreProduct)\
+            .filter(StoreProduct.store_id == current_user.store_id).all()
     else:  # Merchant
         if store_id:
-            store_product_ids = [p.id for p in Product.query.filter_by(store_id=store_id).all()]
-            entries = InventoryEntry.query.filter(InventoryEntry.product_id.in_(store_product_ids)).all()
+            entries = InventoryEntry.query.join(StoreProduct)\
+                .filter(StoreProduct.store_id == store_id).all()
         else:
             entries = InventoryEntry.query.all()
 
@@ -186,10 +176,9 @@ def get_summary():
         }
     }), 200
 
-
-# ===============================================
-# NEW: REPORT TREND ENDPOINT (fixes the 404 error)
-# ===============================================
+# -----------------------------------------------
+# REPORT TREND
+# -----------------------------------------------
 @inventory_bp.route('/report/trend', methods=['GET'])
 @jwt_required()
 def report_trend():
@@ -197,26 +186,26 @@ def report_trend():
     role = claims.get('role')
     current_user_id = get_jwt_identity()
     current_user = db.session.get(User, current_user_id)
-
     store_id = request.args.get('store_id', type=int)
 
     query = db.session.query(
+        StoreProduct.id.label('store_product_id'),
         Product.name.label('product_name'),
         func.sum(InventoryEntry.quantity_received).label('quantity_received'),
         func.sum(InventoryEntry.quantity_in_stock).label('quantity_in_stock')
-    ).join(InventoryEntry, Product.id == InventoryEntry.product_id)
+    ).join(InventoryEntry, InventoryEntry.store_product_id == StoreProduct.id)\
+     .join(Product, Product.id == StoreProduct.product_id)
 
     if role == 'clerk':
         query = query.filter(InventoryEntry.clerk_id == current_user_id)
     elif role == 'admin':
         if not current_user or not current_user.store_id:
             return jsonify({'error': 'Admin not assigned to any store'}), 403
-        query = query.filter(Product.store_id == current_user.store_id)
-    elif role == 'merchant':
-        if store_id:
-            query = query.filter(Product.store_id == store_id)
+        query = query.filter(StoreProduct.store_id == current_user.store_id)
+    elif role == 'merchant' and store_id:
+        query = query.filter(StoreProduct.store_id == store_id)
 
-    trend = query.group_by(Product.name)\
+    trend = query.group_by(StoreProduct.id, Product.name)\
                  .order_by(func.sum(InventoryEntry.quantity_received).desc())\
                  .limit(10).all()
 
