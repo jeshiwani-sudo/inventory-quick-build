@@ -1,28 +1,22 @@
 import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom'; // Added useNavigate
+import { NavLink, useNavigate } from 'react-router-dom'; 
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../../store/slices/authSlice';
 import { toast } from 'react-toastify';
 
 const Sidebar = () => {
   const dispatch = useDispatch();
-  const navigate = useNavigate(); // Initialize navigate
+  const navigate = useNavigate(); 
   const { user } = useSelector((state) => state.auth);
 
-  const handleLogout = () => {
-    // 1. Clear the Redux state (and local storage if handled in your slice)
-    dispatch(logout()); 
-    
-    // 2. Show the notification
+  const handleLogout = () => {    
+    dispatch(logout());   
     toast.success('Logged out successfully');
-
-    // 3. Smoothly redirect to the landing page (with small delay to prevent flash of login)
     setTimeout(() => {
       navigate('/', { replace: true });
     }, 80);
   };
 
-  // Different menu items per role
   const merchantLinks = [
     { to: '/merchant/dashboard', icon: '📊', label: 'Dashboard' },
     { to: '/merchant/stores', icon: '🏪', label: 'Stores' },
