@@ -38,8 +38,8 @@ def create_app():
     jwt.init_app(app)
     mail.init_app(app)
 
-    # CORS - Allow frontend origin
-    CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000", "http://127.0.0.1:3000"]}}, 
+    # CORS
+    CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000", "http://127.0.0.1:3000"]}},
          supports_credentials=True, methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
 
     # Register blueprints
