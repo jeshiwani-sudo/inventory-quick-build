@@ -1,18 +1,25 @@
 import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom'; // Added useNavigate
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../../store/slices/authSlice';
 import { toast } from 'react-toastify';
 
 const Sidebar = () => {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
+  const navigate = useNavigate(); // Initialize navigate
   const { user } = useSelector((state) => state.auth);
 
   const handleLogout = () => {
-    dispatch(logout());
+    // 1. Clear the Redux state (and local storage if handled in your slice)
+    dispatch(logout()); 
+    
+    // 2. Show the notification
     toast.success('Logged out successfully');
-    navigate('/login');
+
+    // 3. Smoothly redirect to the landing page (with small delay to prevent flash of login)
+    setTimeout(() => {
+      navigate('/', { replace: true });
+    }, 80);
   };
 
   // Different menu items per role
@@ -29,7 +36,7 @@ const Sidebar = () => {
     { to: '/admin/inventory', icon: '📋', label: 'Inventory' },
     { to: '/admin/supply-requests', icon: '🚚', label: 'Supply Requests' },
     { to: '/admin/clerks', icon: '📝', label: 'Clerks' },
-    { to: '/admin/reports', icon: '📈', label: 'Reports' },   
+    { to: '/admin/reports', icon: '📈', label: 'Reports' },
   ];
 
   const clerkLinks = [
@@ -61,13 +68,13 @@ const Sidebar = () => {
 
       {/* User Info */}
       <div className="p-6 border-b border-gray-800 flex items-center gap-3">
-        <div className={`w-10 h-10 flex-shrink-0 rounded-2xl flex items-center justify-center ${roleColors[user?.role]} text-xl`}>
-          {user?.full_name?.charAt(0).toUpperCase()}
+        <div className={`w-10 h-10 flex-shrink-0 rounded-2xl flex items-center justify-center ${roleColors[user?.role] || 'bg-gray-700'} text-xl`}>
+          {user?.full_name?.charAt(0).toUpperCase() || 'U'}
         </div>
         <div>
-          <p className="text-sm font-medium">{user?.full_name}</p>
-          <span className={`text-xs px-2 py-0.5 rounded-full ${roleColors[user?.role]}`}>
-            {user?.role}
+          <p className="text-sm font-medium">{user?.full_name || 'User'}</p>
+          <span className={`text-xs px-2 py-0.5 rounded-full ${roleColors[user?.role] || 'bg-gray-700'}`}>
+            {user?.role || 'Guest'}
           </span>
         </div>
       </div>

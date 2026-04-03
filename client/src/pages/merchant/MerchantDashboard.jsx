@@ -3,7 +3,10 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import { toast } from 'react-toastify';
 import api from '../../utils/api';
 import StatCard from '../../components/common/StatCard';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  LineChart, Line, Legend 
+} from 'recharts';
 
 const MerchantDashboard = () => {
   const [summary, setSummary] = useState({});
@@ -43,7 +46,7 @@ const MerchantDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Bar Chart - Store Performance */}
+        {/* Bar Chart */}
         <div className="card">
           <h3 className="text-lg font-semibold mb-4">Store Performance</h3>
           <ResponsiveContainer width="100%" height={420}>
@@ -59,13 +62,14 @@ const MerchantDashboard = () => {
               />
               <YAxis />
               <Tooltip />
+              <Legend />
               <Bar dataKey="quantity_received" fill="#4F46E5" name="Received" />
               <Bar dataKey="quantity_in_stock" fill="#10B981" name="In Stock" />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Line Chart - Trend Over Time */}
+        {/* Line Chart */}
         <div className="card">
           <h3 className="text-lg font-semibold mb-4">Trend Over Time</h3>
           <ResponsiveContainer width="100%" height={420}>
@@ -81,8 +85,9 @@ const MerchantDashboard = () => {
               />
               <YAxis />
               <Tooltip />
-              <Line type="monotone" dataKey="quantity_received" stroke="#4F46E5" strokeWidth={3} />
-              <Line type="monotone" dataKey="quantity_in_stock" stroke="#10B981" strokeWidth={3} />
+              <Legend />
+              <Line type="monotone" dataKey="quantity_received" stroke="#4F46E5" strokeWidth={3} name="Received" />
+              <Line type="monotone" dataKey="quantity_in_stock" stroke="#10B981" strokeWidth={3} name="In Stock" />
             </LineChart>
           </ResponsiveContainer>
         </div>
