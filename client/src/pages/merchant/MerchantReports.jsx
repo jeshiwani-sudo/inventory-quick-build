@@ -1,11 +1,13 @@
-
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { toast } from 'react-toastify';
 import api from '../../utils/api';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  LineChart, Line, Legend 
+} from 'recharts';
 
 const MerchantReports = () => {
   const [summary, setSummary] = useState({});
@@ -80,43 +82,75 @@ const MerchantReports = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <div>
             <label className="block text-sm font-medium mb-1">From Date</label>
-            <input type="date" className="input-field" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            <input 
+              type="date" 
+              className="input-field" 
+              value={startDate} 
+              onChange={(e) => setStartDate(e.target.value)} 
+            />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">To Date</label>
-            <input type="date" className="input-field" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            <input 
+              type="date" 
+              className="input-field" 
+              value={endDate} 
+              onChange={(e) => setEndDate(e.target.value)} 
+            />
           </div>
-          <button onClick={exportToPDF} disabled={exporting} className="btn-primary h-10 mt-6">
+          <button 
+            onClick={exportToPDF} 
+            disabled={exporting} 
+            className="btn-primary h-10 mt-6"
+          >
             {exporting ? 'Exporting...' : 'Export to PDF'}
           </button>
         </div>
       </div>
 
       <div id="report-charts" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Bar Chart - Store Performance */}
         <div className="card">
           <h3 className="text-lg font-semibold mb-4">Store Performance</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={trendData}>
+          <ResponsiveContainer width="100%" height={420}>
+            <BarChart data={trendData} margin={{ top: 20, right: 30, left: 20, bottom: 100 }}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="product_name" />
+              <XAxis
+                dataKey="product_name"
+                angle={-45}
+                textAnchor="end"
+                height={100}
+                interval={0}
+                tick={{ fontSize: 11 }}
+              />
               <YAxis />
               <Tooltip />
-              <Bar dataKey="quantity_received" fill="#4F46E5" />
-              <Bar dataKey="quantity_in_stock" fill="#10B981" />
+              <Legend />
+              <Bar dataKey="quantity_received" fill="#4F46E5" name="Received" />
+              <Bar dataKey="quantity_in_stock" fill="#10B981" name="In Stock" />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
+        {/* Line Chart - Trend Over Time */}
         <div className="card">
           <h3 className="text-lg font-semibold mb-4">Trend Over Time</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={trendData}>
+          <ResponsiveContainer width="100%" height={420}>
+            <LineChart data={trendData} margin={{ top: 20, right: 30, left: 20, bottom: 100 }}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="product_name" />
+              <XAxis
+                dataKey="product_name"
+                angle={-45}
+                textAnchor="end"
+                height={100}
+                interval={0}
+                tick={{ fontSize: 11 }}
+              />
               <YAxis />
               <Tooltip />
-              <Line type="monotone" dataKey="quantity_received" stroke="#4F46E5" strokeWidth={3} />
-              <Line type="monotone" dataKey="quantity_in_stock" stroke="#10B981" strokeWidth={3} />
+              <Legend />
+              <Line type="monotone" dataKey="quantity_received" stroke="#4F46E5" strokeWidth={3} name="Received" />
+              <Line type="monotone" dataKey="quantity_in_stock" stroke="#10B981" strokeWidth={3} name="In Stock" />
             </LineChart>
           </ResponsiveContainer>
         </div>

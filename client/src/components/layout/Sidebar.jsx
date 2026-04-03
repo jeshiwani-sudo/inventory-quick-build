@@ -29,7 +29,7 @@ const Sidebar = () => {
     { to: '/admin/inventory', icon: '📋', label: 'Inventory' },
     { to: '/admin/supply-requests', icon: '🚚', label: 'Supply Requests' },
     { to: '/admin/clerks', icon: '📝', label: 'Clerks' },
-    { to: '/admin/reports', icon: '📈', label: 'Reports' },   {/* ← NEW LINK */}
+    { to: '/admin/reports', icon: '📈', label: 'Reports' },   
   ];
 
   const clerkLinks = [

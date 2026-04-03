@@ -1,10 +1,9 @@
-
-
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { toast } from 'react-toastify';
 import api from '../../utils/api';
 import StatCard from '../../components/common/StatCard';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 
 const MerchantDashboard = () => {
   const [summary, setSummary] = useState({});
@@ -35,6 +34,7 @@ const MerchantDashboard = () => {
 
   return (
     <DashboardLayout title="Merchant Dashboard 📊">
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard title="Total Received" value={summary.total_items_received || 0} icon="📥" color="bg-blue-500" />
         <StatCard title="In Stock" value={summary.total_items_in_stock || 0} icon="📦" color="bg-green-500" />
@@ -43,12 +43,20 @@ const MerchantDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Bar Chart - Store Performance */}
         <div className="card">
           <h3 className="text-lg font-semibold mb-4">Store Performance</h3>
-          <ResponsiveContainer width="100%" height={320}>
-            <BarChart data={trendData}>
+          <ResponsiveContainer width="100%" height={420}>
+            <BarChart data={trendData} margin={{ top: 20, right: 30, left: 20, bottom: 100 }}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="product_name" />
+              <XAxis
+                dataKey="product_name"
+                angle={-45}
+                textAnchor="end"
+                height={100}
+                interval={0}
+                tick={{ fontSize: 11 }}
+              />
               <YAxis />
               <Tooltip />
               <Bar dataKey="quantity_received" fill="#4F46E5" name="Received" />
@@ -57,12 +65,20 @@ const MerchantDashboard = () => {
           </ResponsiveContainer>
         </div>
 
+        {/* Line Chart - Trend Over Time */}
         <div className="card">
           <h3 className="text-lg font-semibold mb-4">Trend Over Time</h3>
-          <ResponsiveContainer width="100%" height={320}>
-            <LineChart data={trendData}>
+          <ResponsiveContainer width="100%" height={420}>
+            <LineChart data={trendData} margin={{ top: 20, right: 30, left: 20, bottom: 100 }}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="product_name" />
+              <XAxis
+                dataKey="product_name"
+                angle={-45}
+                textAnchor="end"
+                height={100}
+                interval={0}
+                tick={{ fontSize: 11 }}
+              />
               <YAxis />
               <Tooltip />
               <Line type="monotone" dataKey="quantity_received" stroke="#4F46E5" strokeWidth={3} />
