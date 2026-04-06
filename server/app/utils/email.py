@@ -36,3 +36,36 @@ Best regards,
     except Exception as e:
         print(f"❌ Failed to send email to {to_email}: {str(e)}")
         return False
+    
+# Password reset
+def send_reset_password_email(to_email, reset_link):
+    try:
+        msg = Message(
+            subject="Reset Your Password - LocalShop",
+            sender=current_app.config.get('MAIL_DEFAULT_SENDER'),
+            recipients=[to_email]
+        )
+
+        msg.body = f"""
+Hello,
+
+You requested to reset your password.
+
+Click the link below to set a new password:
+
+{reset_link}
+
+This link will expire in 2 hours.
+
+If you did not request this, please ignore this email.
+
+Best regards,
+LocalShop Team
+        """
+
+        mail.send(msg)
+        print(f"✅ Password reset email sent to {to_email}")
+        return True
+    except Exception as e:
+        print(f"❌ Failed to send reset email to {to_email}: {str(e)}")
+        return False

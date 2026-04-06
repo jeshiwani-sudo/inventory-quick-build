@@ -7,18 +7,22 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     full_name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    phone_number = db.Column(db.String(20), nullable=True)          # Added
+    phone_number = db.Column(db.String(20), nullable=True)
     password_hash = db.Column(db.String(256), nullable=False)
-    role = db.Column(db.String(20), nullable=False)  # merchant, admin, clerk
+    role = db.Column(db.String(20), nullable=False)
     is_active = db.Column(db.Boolean, default=True)
     is_verified = db.Column(db.Boolean, default=False)
+    
+    # New fields for Forget Password
+    reset_token = db.Column(db.String(256), nullable=True)
+    reset_token_expiry = db.Column(db.DateTime, nullable=True)
+
     invite_token = db.Column(db.String(256), nullable=True)
     invite_token_expiry = db.Column(db.DateTime, nullable=True)
     store_id = db.Column(db.Integer, db.ForeignKey('stores.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Relationships
     store = db.relationship('Store', back_populates='users')
     inventory_entries = db.relationship('InventoryEntry', back_populates='clerk', cascade='all, delete-orphan')
     supply_requests = db.relationship('SupplyRequest', back_populates='clerk', cascade='all, delete-orphan')
