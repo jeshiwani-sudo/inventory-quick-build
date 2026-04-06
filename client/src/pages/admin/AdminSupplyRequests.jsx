@@ -1,9 +1,3 @@
-/**
- * Feature: Supply Requests (Admin)
- * Branch: feature/admin-supply-requests
- * Changes for new store_products junction table: supply requests now use store_product_id
- */
-
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { toast } from 'react-toastify';

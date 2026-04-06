@@ -5,9 +5,15 @@ import { useSelector } from 'react-redux';
 // Auth Pages
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
+
+// Profile Pages
+import EditProfile from './pages/profile/EditProfile';
+import ChangePassword from './pages/profile/ChangePassword';
 
 // Landing Page
-import LandingPage from './pages/LandingPage';   // ← Your landing page
+import LandingPage from './pages/LandingPage';
 
 // Clerk Pages
 import ClerkDashboard from './pages/clerk/ClerkDashboard';
@@ -43,12 +49,12 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Landing Page (Root) */}
+        {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />
-
-        {/* Auth Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* Clerk Routes */}
         <Route path="/clerk/dashboard" element={
@@ -126,6 +132,20 @@ function App() {
           </ProtectedRoute>
         } />
 
+        {/* Profile Routes (accessible by all logged-in users) */}
+        <Route path="/profile/edit" element={
+          <ProtectedRoute allowedRoles={['merchant', 'admin', 'clerk']}>
+            <EditProfile />
+          </ProtectedRoute>
+        } />
+        <Route path="/profile/change-password" element={
+          <ProtectedRoute allowedRoles={['merchant', 'admin', 'clerk']}>
+            <ChangePassword />
+          </ProtectedRoute>
+        } />
+
+        {/* Catch all */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
   );
