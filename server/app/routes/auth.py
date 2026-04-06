@@ -8,6 +8,7 @@ import bcrypt
 import secrets
 from datetime import datetime, timedelta
 from flask_mail import Message
+from app.utils.email import send_invite_email, send_reset_password_email
 
 auth_bp = Blueprint('auth', __name__)
 
