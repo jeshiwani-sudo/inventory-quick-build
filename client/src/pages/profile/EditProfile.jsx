@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { toast } from 'react-toastify';
 import api from '../../utils/api';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { updateUser } from '../../store/slices/authSlice';   // We'll use this to refresh Redux
 
 const EditProfile = () => {
+  const dispatch = useDispatch();
   const { user } = useSelector(state => state.auth);
-  const [form, setForm] = useState({
-    full_name: '',
-    phone_number: ''
-  });
+
+  const [form, setForm] = useState({ full_name: '', phone_number: '' });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -24,11 +24,16 @@ const EditProfile = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+
     try {
-      await api.put('/auth/profile', form);
+      const res = await api.put('/auth/profile', form);
+
+      // FIXED: Update Redux store immediately so sidebar reflects new name
+      dispatch(updateUser(res.data.user));
+
       toast.success('Profile updated successfully');
     } catch (err) {
-      toast.error('Failed to update profile');
+      toast.error(err.response?.data?.error || 'Failed to update profile');
     } finally {
       setLoading(false);
     }

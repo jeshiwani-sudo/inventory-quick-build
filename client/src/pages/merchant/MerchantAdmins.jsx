@@ -10,13 +10,14 @@ const MerchantAdmins = () => {
   const [admins, setAdmins] = useState([]);
   const [stores, setStores] = useState([]);
   const [fetching, setFetching] = useState(true);
-  const [actionId, setActionId] = useState(null);
+  const [actionId, setActionId] = useState(null); // For loading states on buttons
 
   useEffect(() => {
     fetchAdmins();
     fetchStores();
   }, []);
 
+  // FIXED: Only fetch Admins
   const fetchAdmins = async () => {
     setFetching(true);
     try {
@@ -41,18 +42,19 @@ const MerchantAdmins = () => {
   const handleInviteAdmin = async (e) => {
     e.preventDefault();
     if (!email) return toast.error('Email is required');
+    if (!storeId) return toast.error('Please select a store');
 
     setLoading(true);
     try {
       await api.post('/auth/invite', {
         email,
         role: 'admin',
-        store_id: storeId ? parseInt(storeId) : null
+        store_id: parseInt(storeId)
       });
       toast.success(`Invite sent to ${email} ✅`);
       setEmail('');
       setStoreId('');
-      fetchAdmins();
+      fetchAdmins(); // Refresh list
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to send invite');
     } finally {
@@ -72,6 +74,7 @@ const MerchantAdmins = () => {
     try {
       await api.patch(`/auth/users/${admin.id}/toggle-active`);
       toast.success(`${admin.full_name} has been ${newStatus ? 'activated' : 'suspended'}`);
+      // Optimistic update
       setAdmins(prev => prev.map(a => 
         a.id === admin.id ? { ...a, is_active: newStatus } : a
       ));
@@ -120,11 +123,12 @@ const MerchantAdmins = () => {
             />
           </div>
           <div className="md:col-span-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Assign to Store</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Assign to Store *</label>
             <select
               className="input-field"
               value={storeId}
               onChange={e => setStoreId(e.target.value)}
+              required
             >
               <option value="">Select Store</option>
               {stores.map(s => (
@@ -188,7 +192,7 @@ const MerchantAdmins = () => {
                       </span>
                     </td>
                     <td className="py-4 px-4">
-                      <div className="flex gap-2 flex-wrap">
+                      <div className="flex gap-3">
                         <button
                           onClick={() => handleToggleActive(admin)}
                           disabled={actionId === admin.id}

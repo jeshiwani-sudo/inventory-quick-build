@@ -78,7 +78,7 @@ const LandingPage = () => {
         <div className="lp-nav-inner">
           <div className="lp-logo">
             <div className="lp-logo-icon">📦</div>
-            <span className="lp-logo-text">StockPilot</span>
+            <span className="lp-logo-text">LocalShop</span>
           </div>
           <div className="lp-nav-links">
             {['Features', 'Roles', 'About'].map(l => (
@@ -123,7 +123,7 @@ const LandingPage = () => {
         </h1>
 
         <p className="lp-hero-sub lp-hero-paragraph">
-          StockPilot gives merchants, admins and clerks a unified platform to track inventory,
+          LocalShop gives merchants, admins and clerks a unified platform to track inventory,
           manage supply chains and make smarter decisions — in real time.
         </p>
 
@@ -210,7 +210,7 @@ const LandingPage = () => {
             <p className="lp-eyebrow">About</p>
             <h2 className="lp-section-title">Built for growing retail businesses</h2>
             <p className="lp-about-text">
-              StockPilot was designed to solve the real operational challenges that small and medium
+              LocalShop was designed to solve the real operational challenges that small and medium
               retail businesses face when managing inventory across multiple store branches. From recording
               daily stock to approving supply requests, every workflow is built to be fast, simple and reliable.
             </p>
@@ -249,9 +249,9 @@ const LandingPage = () => {
         <div className="lp-footer-inner">
           <div className="lp-logo">
             <div className="lp-logo-icon" style={{ width: 30, height: 30, fontSize: 15, borderRadius: 8 }}>📦</div>
-            <span className="lp-logo-text" style={{ color: '#334155' }}>StockPilot</span>
+            <span className="lp-logo-text" style={{ color: '#334155' }}>LocalShop</span>
           </div>
-          <p className="lp-footer-text">© 2025 StockPilot · Phase 4 Capstone Project</p>
+          <p className="lp-footer-text">© 2026 LocalShop · Phase 5 Capstone Project</p>
           <div className="lp-footer-links">
             <span className="lp-footer-link" onClick={() => navigate('/login')}>Sign In</span>
             <a href="#features" className="lp-footer-link">Features</a>

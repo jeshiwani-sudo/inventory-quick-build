@@ -49,6 +49,12 @@ const authSlice = createSlice({
     },
     clearError: (state) => {
       state.error = null;
+    },
+    // NEW: This allows immediate update of user data after editing profile
+    updateUser: (state, action) => {
+      state.user = action.payload;
+      // Also update localStorage so it persists after refresh
+      localStorage.setItem('user', JSON.stringify(action.payload));
     }
   },
   extraReducers: (builder) => {
@@ -72,5 +78,5 @@ const authSlice = createSlice({
   }
 });
 
-export const { logout, clearError } = authSlice.actions;
+export const { logout, clearError, updateUser } = authSlice.actions;
 export default authSlice.reducer;

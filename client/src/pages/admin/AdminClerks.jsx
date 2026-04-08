@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { toast } from 'react-toastify';
 import api from '../../utils/api';
@@ -11,26 +11,27 @@ const AdminClerks = () => {
   const [deletingId, setDeletingId] = useState(null);
   const { user } = useSelector(state => state.auth);
 
-  useEffect(() => {
-    fetchClerks();
-  }, []);
-
-  const fetchClerks = async () => {
+  // Fixed: Wrapped in useCallback to prevent unnecessary re-creation
+  const fetchClerks = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get('/auth/users?role=clerk');
+      // Only fetch clerks for this admin's store
+      const res = await api.get(`/auth/users?role=clerk&store_id=${user?.store_id}`);
       setClerks(res.data.users || []);
     } catch {
       toast.error('Failed to load clerks');
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.store_id]);
+
+  useEffect(() => {
+    fetchClerks();
+  }, [fetchClerks]);   // ← Now includes fetchClerks (no more ESLint warning)
 
   const sendInvite = async (e) => {
     e.preventDefault();
     if (!inviteEmail) return toast.error('Email is required');
-
     try {
       await api.post('/auth/invite', {
         email: inviteEmail,
@@ -57,7 +58,6 @@ const AdminClerks = () => {
 
   const handleDelete = async (clerk) => {
     if (!window.confirm(`Delete clerk "${clerk.full_name}"?`)) return;
-
     setDeletingId(clerk.id);
     try {
       await api.delete(`/auth/users/${clerk.id}`);
