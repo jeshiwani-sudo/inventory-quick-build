@@ -23,7 +23,7 @@ const Sidebar = () => {
     { to: '/merchant/admins', icon: '👔', label: 'Admins' },
     { to: '/merchant/reports', icon: '📈', label: 'Reports' },
     { to: '/profile/edit', icon: '👤', label: 'Edit Profile' },
-    { to: '/profile/change-password', icon: '🔑', label: 'Change Password' },   // ← NEW
+    { to: '/profile/change-password', icon: '🔑', label: 'Change Password' },   
   ];
 
   const adminLinks = [
@@ -34,7 +34,7 @@ const Sidebar = () => {
     { to: '/admin/clerks', icon: '📝', label: 'Clerks' },
     { to: '/admin/reports', icon: '📈', label: 'Reports' },
     { to: '/profile/edit', icon: '👤', label: 'Edit Profile' },
-    { to: '/profile/change-password', icon: '🔑', label: 'Change Password' },   // ← NEW
+    { to: '/profile/change-password', icon: '🔑', label: 'Change Password' },   
   ];
 
   const clerkLinks = [
@@ -43,7 +43,7 @@ const Sidebar = () => {
     { to: '/clerk/my-entries', icon: '📋', label: 'My Entries' },
     { to: '/clerk/supply-requests', icon: '🚚', label: 'Supply Requests' },
     { to: '/profile/edit', icon: '👤', label: 'Edit Profile' },
-    { to: '/profile/change-password', icon: '🔑', label: 'Change Password' },   // ← NEW
+    { to: '/profile/change-password', icon: '🔑', label: 'Change Password' },   
   ];
 
   const links = user?.role === 'merchant' ? merchantLinks

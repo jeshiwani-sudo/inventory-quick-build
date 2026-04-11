@@ -2,6 +2,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { toast } from 'react-toastify';
 import api from '../../utils/api';
+import Table from '../../components/common/Table';
+import EmptyState from '../../components/common/EmptyState';
 
 const ClerkSupplyRequests = () => {
   const [requests, setRequests] = useState([]);
@@ -50,6 +52,24 @@ const ClerkSupplyRequests = () => {
       toast.error(err.response?.data?.error || 'Failed to submit request');
     }
   };
+
+  const columns = [
+    { header: 'Product', accessor: 'product_name' },
+    { header: 'Quantity', accessor: 'quantity_requested' },
+    { header: 'Status', accessor: 'status' },
+    { header: 'Date', accessor: 'created_at' },
+  ];
+
+  const tableData = requests.map(r => ({
+    product_name: r.product_name,
+    quantity_requested: r.quantity_requested,
+    status: (
+      <span className={`px-3 py-1 text-xs rounded-full ${r.status === 'approved' ? 'bg-green-100 text-green-700' : r.status === 'declined' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
+        {r.status}
+      </span>
+    ),
+    created_at: r.created_at
+  }));
 
   return (
     <DashboardLayout title="Supply Requests 🚚">
@@ -106,31 +126,11 @@ const ClerkSupplyRequests = () => {
           </form>
         )}
 
-        {/* Table */}
-        <table className="w-full">
-          <thead>
-            <tr className="border-b">
-              <th className="text-left py-4">Product</th>
-              <th className="text-left py-4">Quantity</th>
-              <th className="text-left py-4">Status</th>
-              <th className="text-left py-4">Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            {requests.map(r => (
-              <tr key={r.id} className="border-b hover:bg-gray-50">
-                <td className="py-4">{r.product_name}</td>
-                <td className="py-4">{r.quantity_requested}</td>
-                <td className="py-4">
-                  <span className={`px-3 py-1 text-xs rounded-full ${r.status === 'approved' ? 'bg-green-100 text-green-700' : r.status === 'declined' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                    {r.status}
-                  </span>
-                </td>
-                <td className="py-4 text-gray-500 text-sm">{r.created_at}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {requests.length === 0 ? (
+          <EmptyState title="No supply requests yet" message="Your requests will appear here" icon="🚚" />
+        ) : (
+          <Table columns={columns} data={tableData} />
+        )}
       </div>
     </DashboardLayout>
   );

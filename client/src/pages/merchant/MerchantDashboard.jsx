@@ -3,10 +3,7 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import { toast } from 'react-toastify';
 import api from '../../utils/api';
 import StatCard from '../../components/common/StatCard';
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  LineChart, Line, Legend 
-} from 'recharts';
+import Chart from '../../components/common/Chart';
 
 const MerchantDashboard = () => {
   const [summary, setSummary] = useState({});
@@ -21,7 +18,7 @@ const MerchantDashboard = () => {
     try {
       const res = await api.get('/inventory/report/summary');
       setSummary(res.data.summary || {});
-    } catch {
+    } catch (err) {
       toast.error('Failed to load summary');
     }
   };
@@ -29,68 +26,55 @@ const MerchantDashboard = () => {
   const fetchTrend = async () => {
     try {
       const res = await api.get('/inventory/report/trend');
-      setTrendData(res.data.trend || []);
-    } catch {
+      const cleaned = (res.data.trend || []).map(item => ({
+        ...item,
+        quantity_received: Number(item.quantity_received || item.received || 0),
+        quantity_in_stock: Number(item.quantity_in_stock || item.inStock || 0),
+      }));
+      setTrendData(cleaned);
+    } catch (err) {
       toast.error('Failed to load trend data');
+      console.error(err);
     }
   };
 
   return (
     <DashboardLayout title="Merchant Dashboard 📊">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard title="Total Received" value={summary.total_items_received || 0} icon="📥" color="bg-blue-500" />
         <StatCard title="In Stock" value={summary.total_items_in_stock || 0} icon="📦" color="bg-green-500" />
         <StatCard title="Spoilt" value={summary.total_items_spoilt || 0} icon="⚠️" color="bg-red-500" />
         <StatCard title="Unpaid (KES)" value={`KES ${(summary.total_unpaid_amount || 0).toLocaleString()}`} icon="💰" color="bg-orange-500" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Bar Chart */}
-        <div className="card">
-          <h3 className="text-lg font-semibold mb-4">Store Performance</h3>
-          <ResponsiveContainer width="100%" height={420}>
-            <BarChart data={trendData} margin={{ top: 20, right: 30, left: 20, bottom: 100 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                dataKey="product_name"
-                angle={-45}
-                textAnchor="end"
-                height={100}
-                interval={0}
-                tick={{ fontSize: 11 }}
-              />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="quantity_received" fill="#4F46E5" name="Received" />
-              <Bar dataKey="quantity_in_stock" fill="#10B981" name="In Stock" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+      {/* Combined charts  */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <Chart
+          title="Store Performance"
+          data={trendData}
+          dataKey1="quantity_received"
+          dataKey2="quantity_in_stock"
+          name1="Received"
+          name2="In Stock"
+          color1="#4F46E5"
+          color2="#10B981"
+          type="bar"
+          xDataKey="product_name"
+        />
 
-        {/* Line Chart */}
-        <div className="card">
-          <h3 className="text-lg font-semibold mb-4">Trend Over Time</h3>
-          <ResponsiveContainer width="100%" height={420}>
-            <LineChart data={trendData} margin={{ top: 20, right: 30, left: 20, bottom: 100 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                dataKey="product_name"
-                angle={-45}
-                textAnchor="end"
-                height={100}
-                interval={0}
-                tick={{ fontSize: 11 }}
-              />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="quantity_received" stroke="#4F46E5" strokeWidth={3} name="Received" />
-              <Line type="monotone" dataKey="quantity_in_stock" stroke="#10B981" strokeWidth={3} name="In Stock" />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+        <Chart
+          title="Trend Over Time"
+          data={trendData}
+          dataKey1="quantity_received"
+          dataKey2="quantity_in_stock"
+          name1="Received"
+          name2="In Stock"
+          color1="#4F46E5"
+          color2="#10B981"
+          type="line"
+          xDataKey="product_name"
+        />
       </div>
     </DashboardLayout>
   );

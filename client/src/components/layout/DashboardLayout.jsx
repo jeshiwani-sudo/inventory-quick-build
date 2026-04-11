@@ -16,10 +16,10 @@ const DashboardLayout = ({ children, title }) => {
         <Sidebar />
       </div>
 
-      {/* Main Content - No extra gap */}
+      {/* Main Content  */}
       <div className="flex-1 min-h-screen w-full lg:ml-0">
         
-        {/* Mobile Top Bar with Hamburger */}
+        {/* Mobile Top Bar  */}
         <div className="lg:hidden bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -38,7 +38,7 @@ const DashboardLayout = ({ children, title }) => {
           <div className="w-8" />
         </div>
 
-        {/* Page Content - Tight to sidebar on desktop */}
+        {/* Page Content  */}
         <div className="p-4 lg:p-8">
           {title && (
             <h1 className="hidden lg:block text-2xl font-bold text-gray-800 dark:text-white mb-6">

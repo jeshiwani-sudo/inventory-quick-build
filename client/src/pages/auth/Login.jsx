@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -11,13 +11,18 @@ const Login = () => {
   const { loading, error, user } = useSelector((state) => state.auth);
   const { register, handleSubmit, formState: { errors } } = useForm();
 
+  const redirectByRole = useCallback((role) => {
+    if (role === 'merchant') navigate('/merchant/dashboard');
+    else if (role === 'admin') navigate('/admin/dashboard');
+    else if (role === 'clerk') navigate('/clerk/dashboard');
+  }, [navigate]);
+
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
       redirectByRole(user.role);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, redirectByRole]);
 
   // Show error toast
   useEffect(() => {
@@ -25,14 +30,7 @@ const Login = () => {
       toast.error(error);
       dispatch(clearError());
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [error]);
-
-  const redirectByRole = (role) => {
-    if (role === 'merchant') navigate('/merchant/dashboard');
-    else if (role === 'admin') navigate('/admin/dashboard');
-    else if (role === 'clerk') navigate('/clerk/dashboard');
-  };
+  }, [error, dispatch]);
 
   const onSubmit = async (data) => {
     const result = await dispatch(loginUser(data));
@@ -113,7 +111,7 @@ const Login = () => {
 
         </form>
 
-        {/* Forgot Password Link - Added below login button */}
+        {/* Forgot Password Link  */}
         <div className="text-center mt-4">
           <button
             onClick={() => navigate('/forgot-password')}
@@ -122,18 +120,6 @@ const Login = () => {
             Forgot Password?
           </button>
         </div>
-
-        {/* Register Link */}
-        <div className="text-center mt-6 text-sm">
-          Don't have an account?{' '}
-          <button
-            onClick={() => navigate('/register')}
-            className="text-indigo-600 hover:text-indigo-700 font-medium hover:underline"
-          >
-            Register here
-          </button>
-        </div>
-
       </div>
     </div>
   );

@@ -3,7 +3,7 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import { toast } from 'react-toastify';
 import api from '../../utils/api';
 import { useSelector, useDispatch } from 'react-redux';
-import { updateUser } from '../../store/slices/authSlice';   // We'll use this to refresh Redux
+import { updateUser } from '../../store/slices/authSlice';   
 
 const EditProfile = () => {
   const dispatch = useDispatch();

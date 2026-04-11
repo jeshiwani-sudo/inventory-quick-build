@@ -49,11 +49,9 @@ const authSlice = createSlice({
     },
     clearError: (state) => {
       state.error = null;
-    },
-    // NEW: This allows immediate update of user data after editing profile
+    },    
     updateUser: (state, action) => {
-      state.user = action.payload;
-      // Also update localStorage so it persists after refresh
+      state.user = action.payload;      
       localStorage.setItem('user', JSON.stringify(action.payload));
     }
   },

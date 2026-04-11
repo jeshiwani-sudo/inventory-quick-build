@@ -1,8 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { toast } from 'react-toastify';
 import api from '../../utils/api';
+import Table from '../../components/common/Table';
+import EmptyState from '../../components/common/EmptyState';
 
 const MerchantStores = () => {
   const [stores, setStores] = useState([]);
@@ -63,12 +64,36 @@ const MerchantStores = () => {
     }
   };
 
+  const columns = [
+    { header: 'Store Name', accessor: 'name' },
+    { header: 'Location', accessor: 'location' },
+    { header: 'Actions', accessor: 'actions' },
+  ];
+
+  const tableData = stores.map(store => ({
+    name: store.name,
+    location: store.location,
+    actions: (
+      <div className="flex gap-3">
+        <button onClick={() => handleEdit(store)} className="text-blue-600 hover:text-blue-700 text-sm">Edit</button>
+        <button onClick={() => handleDelete(store)} className="text-red-600 hover:text-red-700 text-sm">Delete</button>
+      </div>
+    )
+  }));
+
   return (
     <DashboardLayout title="Manage Stores 🏪">
       <div className="card">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold">All Stores</h2>
-          <button onClick={() => { setEditingStore(null); setForm({ name: '', location: '' }); setShowForm(true); }} className="btn-primary">
+          <button 
+            onClick={() => { 
+              setEditingStore(null); 
+              setForm({ name: '', location: '' }); 
+              setShowForm(true); 
+            }} 
+            className="btn-primary"
+          >
             + Add New Store
           </button>
         </div>
@@ -77,11 +102,21 @@ const MerchantStores = () => {
           <form onSubmit={handleSubmit} className="bg-gray-50 p-6 rounded-2xl mb-8">
             <div>
               <label className="block text-sm font-medium mb-1">Store Name</label>
-              <input className="input-field" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
+              <input 
+                className="input-field" 
+                value={form.name} 
+                onChange={e => setForm({...form, name: e.target.value})} 
+                required 
+              />
             </div>
             <div className="mt-4">
               <label className="block text-sm font-medium mb-1">Location</label>
-              <input className="input-field" value={form.location} onChange={e => setForm({...form, location: e.target.value})} required />
+              <input 
+                className="input-field" 
+                value={form.location} 
+                onChange={e => setForm({...form, location: e.target.value})} 
+                required 
+              />
             </div>
             <button type="submit" className="btn-primary mt-6">
               {editingStore ? 'Update Store' : 'Create Store'}
@@ -89,27 +124,17 @@ const MerchantStores = () => {
           </form>
         )}
 
-        <table className="w-full">
-          <thead>
-            <tr className="border-b">
-              <th className="text-left py-4">Store Name</th>
-              <th className="text-left py-4">Location</th>
-              <th className="text-left py-4">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {stores.map(store => (
-              <tr key={store.id} className="border-b hover:bg-gray-50">
-                <td className="py-4 font-medium">{store.name}</td>
-                <td className="py-4">{store.location}</td>
-                <td className="py-4">
-                  <button onClick={() => handleEdit(store)} className="text-blue-600 hover:text-blue-700 mr-4">Edit</button>
-                  <button onClick={() => handleDelete(store)} className="text-red-600 hover:text-red-700">Delete</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {loading ? (
+          <p className="text-center py-10 text-gray-400">Loading stores...</p>
+        ) : stores.length === 0 ? (
+          <EmptyState 
+            title="No stores yet" 
+            message="Create your first store to get started" 
+            icon="🏪" 
+          />
+        ) : (
+          <Table columns={columns} data={tableData} />
+        )}
       </div>
     </DashboardLayout>
   );

@@ -2,10 +2,7 @@ import React, { useEffect, useState } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { toast } from 'react-toastify';
 import api from '../../utils/api';
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  LineChart, Line, Legend 
-} from 'recharts';
+import Chart from '../../components/common/Chart';
 
 const AdminDashboard = () => {
   const [summary, setSummary] = useState({});
@@ -58,49 +55,8 @@ const AdminDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="card">
-          <h3 className="text-lg font-semibold mb-4">Store Performance</h3>
-          <ResponsiveContainer width="100%" height={420}>
-            <BarChart data={trendData} margin={{ top: 20, right: 30, left: 20, bottom: 100 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                dataKey="product_name"
-                angle={-45}
-                textAnchor="end"
-                height={100}
-                interval={0}
-                tick={{ fontSize: 11 }}
-              />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="quantity_received" fill="#4F46E5" name="Received" />
-              <Bar dataKey="quantity_in_stock" fill="#10B981" name="In Stock" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className="card">
-          <h3 className="text-lg font-semibold mb-4">Trend Over Time</h3>
-          <ResponsiveContainer width="100%" height={420}>
-            <LineChart data={trendData} margin={{ top: 20, right: 30, left: 20, bottom: 100 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                dataKey="product_name"
-                angle={-45}
-                textAnchor="end"
-                height={100}
-                interval={0}
-                tick={{ fontSize: 11 }}
-              />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="quantity_received" stroke="#4F46E5" strokeWidth={3} name="Received" />
-              <Line type="monotone" dataKey="quantity_in_stock" stroke="#10B981" strokeWidth={3} name="In Stock" />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+        <Chart title="Store Performance" data={trendData} dataKey="quantity_received" color="#4F46E5" />
+        <Chart title="Trend Over Time" data={trendData} dataKey="quantity_in_stock" color="#10B981" />
       </div>
     </DashboardLayout>
   );

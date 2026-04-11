@@ -17,7 +17,7 @@ const ResetPassword = () => {
       toast.error('Invalid or expired reset link');
       navigate('/login');
     }
-  }, [token, navigate]);   // ← Fixed ESLint warning
+  }, [token, navigate]);   
 
   const handleSubmit = async (e) => {
     e.preventDefault();
