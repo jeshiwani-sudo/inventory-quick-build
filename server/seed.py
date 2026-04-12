@@ -29,24 +29,12 @@ def seed():
         db.session.commit()
 
         # -----------------------------------------------
-        # CREATE STORES
+        # CREATE MERCHANT FIRST (so we can link stores to them)
         # -----------------------------------------------
-        print("🏪 Creating stores...")
-        store1 = Store(name="Nairobi CBD Branch", location="Nairobi CBD, Moi Avenue")
-        store2 = Store(name="Westlands Branch", location="Westlands, Waiyaki Way")
-        store3 = Store(name="Mombasa Branch", location="Mombasa, Nyali Road")
-
-        db.session.add_all([store1, store2, store3])
-        db.session.commit()
-
-        # -----------------------------------------------
-        # CREATE USERS (All passwords = password123)
-        # -----------------------------------------------
-        print("👥 Creating users...")
-        # Merchant
+        print("👑 Creating merchant...")
         merchant = User(
             full_name="James Mwangi",
-            email="merchant@test.com",
+            email="merchant@gmail.com",
             phone_number="+254 712 345 678",
             password_hash=hash_password("password123"),
             role="merchant",
@@ -54,10 +42,39 @@ def seed():
             is_verified=True,
             store_id=None
         )
-        # Admins
+        db.session.add(merchant)
+        db.session.commit()  # Commit now so merchant.id is available
+
+        # -----------------------------------------------
+        # CREATE STORES — linked to the seed merchant via merchant_id
+        # -----------------------------------------------
+        print("🏪 Creating stores...")
+        store1 = Store(
+            name="Nairobi CBD Branch",
+            location="Nairobi CBD, Moi Avenue",
+            merchant_id=merchant.id  # Scoped to this merchant
+        )
+        store2 = Store(
+            name="Westlands Branch",
+            location="Westlands, Waiyaki Way",
+            merchant_id=merchant.id
+        )
+        store3 = Store(
+            name="Mombasa Branch",
+            location="Mombasa, Nyali Road",
+            merchant_id=merchant.id
+        )
+
+        db.session.add_all([store1, store2, store3])
+        db.session.commit()
+
+        # -----------------------------------------------
+        # CREATE ADMINS AND CLERKS
+        # -----------------------------------------------
+        print("👥 Creating admins and clerks...")
         admin1 = User(
             full_name="Admin One",
-            email="admin1@test.com",
+            email="admin1@gmail.com",
             phone_number="+254 723 456 789",
             password_hash=hash_password("password123"),
             role="admin",
@@ -67,7 +84,7 @@ def seed():
         )
         admin2 = User(
             full_name="Admin Two",
-            email="admin2@test.com",
+            email="admin2@gmail.com",
             phone_number="+254 734 567 890",
             password_hash=hash_password("password123"),
             role="admin",
@@ -77,7 +94,7 @@ def seed():
         )
         admin3 = User(
             full_name="Admin Three",
-            email="admin3@test.com",
+            email="admin3@gmail.com",
             phone_number="+254 745 678 901",
             password_hash=hash_password("password123"),
             role="admin",
@@ -85,10 +102,9 @@ def seed():
             is_verified=True,
             store_id=store3.id
         )
-        # Clerks
         clerk1 = User(
             full_name="Clerk One",
-            email="clerk1@test.com",
+            email="clerk1@gmail.com",
             phone_number="+254 756 789 012",
             password_hash=hash_password("password123"),
             role="clerk",
@@ -98,7 +114,7 @@ def seed():
         )
         clerk2 = User(
             full_name="Clerk Two",
-            email="clerk2@test.com",
+            email="clerk2@gmail.com",
             phone_number="+254 767 890 123",
             password_hash=hash_password("password123"),
             role="clerk",
@@ -108,7 +124,7 @@ def seed():
         )
         clerk3 = User(
             full_name="Clerk Three",
-            email="clerk3@test.com",
+            email="clerk3@gmail.com",
             phone_number="+254 778 901 234",
             password_hash=hash_password("password123"),
             role="clerk",
@@ -118,7 +134,7 @@ def seed():
         )
         clerk4 = User(
             full_name="Clerk Four",
-            email="clerk4@test.com",
+            email="clerk4@gmail.com",
             phone_number="+254 789 012 345",
             password_hash=hash_password("password123"),
             role="clerk",
@@ -128,7 +144,7 @@ def seed():
         )
         clerk5 = User(
             full_name="Clerk Five",
-            email="clerk5@test.com",
+            email="clerk5@gmail.com",
             phone_number="+254 790 123 456",
             password_hash=hash_password("password123"),
             role="clerk",
@@ -138,7 +154,7 @@ def seed():
         )
         clerk6 = User(
             full_name="Clerk Six",
-            email="clerk6@test.com",
+            email="clerk6@gmail.com",
             phone_number="+254 701 234 567",
             password_hash=hash_password("password123"),
             role="clerk",
@@ -148,7 +164,7 @@ def seed():
         )
 
         db.session.add_all([
-            merchant, admin1, admin2, admin3,
+            admin1, admin2, admin3,
             clerk1, clerk2, clerk3, clerk4, clerk5, clerk6
         ])
         db.session.commit()
@@ -212,7 +228,6 @@ def seed():
         payment_options = ['paid', 'unpaid']
 
         for clerk, store_id in clerk_product_map:
-            # Get StoreProduct links for this store
             store_products = StoreProduct.query.filter_by(store_id=store_id).all()
             for sp in store_products:
                 for _ in range(2):  # 2 entries per product
@@ -270,24 +285,30 @@ def seed():
         # -----------------------------------------------
         # DONE
         # -----------------------------------------------
-        print("\n✅ Database seeded successfully with new store_products junction table!\n")
+        print("\n✅ Database seeded successfully!\n")
         print("=" * 60)
-        print("🔐 ALL ACCOUNTS USE THE SAME PASSWORD: password123")
+        print("🔐 LOGIN CREDENTIALS (all use password123)")
         print("=" * 60)
-        print("\n👑 MERCHANT")
-        print("   Email: merchant@test.com")
-        print("   Password: password123\n")
+        print("👑 MERCHANT")
+        print("   Email:    merchant@gmail.com")
+        print("   Password: password123")
+        print("   Stores:   Nairobi CBD Branch, Westlands Branch, Mombasa Branch")
+        print("")
         print("👔 ADMINS")
-        print("   admin1@test.com → Nairobi CBD Branch")
-        print("   admin2@test.com → Westlands Branch")
-        print("   admin3@test.com → Mombasa Branch\n")
+        print("   admin1@gmail.com  → Nairobi CBD Branch")
+        print("   admin2@gmail.com  → Westlands Branch")
+        print("   admin3@gmail.com  → Mombasa Branch")
+        print("")
         print("📝 CLERKS")
-        print("   clerk1@test.com → Nairobi CBD Branch")
-        print("   clerk2@test.com → Nairobi CBD Branch")
-        print("   clerk3@test.com → Westlands Branch")
-        print("   clerk4@test.com → Westlands Branch")
-        print("   clerk5@test.com → Mombasa Branch")
-        print("   clerk6@test.com → Mombasa Branch\n")
+        print("   clerk1@gmail.com  → Nairobi CBD Branch")
+        print("   clerk2@gmail.com  → Nairobi CBD Branch")
+        print("   clerk3@gmail.com  → Westlands Branch")
+        print("   clerk4@gmail.com  → Westlands Branch")
+        print("   clerk5@gmail.com  → Mombasa Branch")
+        print("   clerk6@gmail.com  → Mombasa Branch")
+        print("")
+        print("ℹ️  New merchants who self-register will get a completely")
+        print("   fresh empty store with no shared data.")
         print("=" * 60)
 
 if __name__ == '__main__':

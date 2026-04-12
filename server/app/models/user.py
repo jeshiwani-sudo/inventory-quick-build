@@ -5,27 +5,52 @@ class User(db.Model):
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
-    full_name = db.Column(db.String(100), nullable=False)
+    full_name = db.Column(db.String(100), nullable=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
     phone_number = db.Column(db.String(20), nullable=True)
-    password_hash = db.Column(db.String(256), nullable=False)
-    role = db.Column(db.String(20), nullable=False)
+    password_hash = db.Column(db.String(256), nullable=True)  # nullable: invited users have no password yet
+    role = db.Column(db.String(20), nullable=False)  # merchant, admin, clerk
     is_active = db.Column(db.Boolean, default=True)
     is_verified = db.Column(db.Boolean, default=False)
-    
-    # New fields for Forget Password
+
+    # Forgot password fields
     reset_token = db.Column(db.String(256), nullable=True)
     reset_token_expiry = db.Column(db.DateTime, nullable=True)
 
+    # Invite fields
     invite_token = db.Column(db.String(256), nullable=True)
     invite_token_expiry = db.Column(db.DateTime, nullable=True)
+
+    # Which store this user belongs to (admin/clerk)
     store_id = db.Column(db.Integer, db.ForeignKey('stores.id'), nullable=True)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    store = db.relationship('Store', back_populates='users')
-    inventory_entries = db.relationship('InventoryEntry', back_populates='clerk', cascade='all, delete-orphan')
-    supply_requests = db.relationship('SupplyRequest', back_populates='clerk', cascade='all, delete-orphan')
+    # The store this user (admin/clerk) belongs to
+    store = db.relationship(
+        'Store',
+        back_populates='users',
+        foreign_keys=[store_id]
+    )
+
+    # Stores this user OWNS (merchant only)
+    owned_stores = db.relationship(
+        'Store',
+        back_populates='merchant',
+        foreign_keys='Store.merchant_id'
+    )
+
+    inventory_entries = db.relationship(
+        'InventoryEntry',
+        back_populates='clerk',
+        cascade='all, delete-orphan'
+    )
+    supply_requests = db.relationship(
+        'SupplyRequest',
+        back_populates='clerk',
+        cascade='all, delete-orphan'
+    )
 
     def to_dict(self):
         return {

@@ -3,14 +3,23 @@ from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from app import db
 from app.models.product import Product
 from app.models.store_product import StoreProduct
-from app.models.user import User
 from app.models.store import Store
+from app.models.user import User
 
 products_bp = Blueprint('products', __name__)
 
-# ===============================================
-# DIRECT ENDPOINT FOR FRONTEND (Clerk & Admin forms)
-# ===============================================
+
+# -----------------------------------------------
+# Helper: get store IDs owned by a merchant
+# -----------------------------------------------
+def get_merchant_store_ids(merchant_id):
+    stores = Store.query.filter_by(merchant_id=merchant_id).all()
+    return [s.id for s in stores]
+
+
+# -----------------------------------------------
+# GET STORE PRODUCTS (Clerk/Admin form dropdowns)
+# -----------------------------------------------
 @products_bp.route('/store-products', methods=['GET'])
 @jwt_required()
 def get_store_products():
@@ -19,18 +28,26 @@ def get_store_products():
     claims = get_jwt()
     role = claims.get('role')
 
-    if role == 'clerk' or role == 'admin':
+    if role in ['clerk', 'admin']:
         if not current_user or not current_user.store_id:
             return jsonify({'error': 'Not assigned to any store'}), 403
         store_products = StoreProduct.query.filter_by(store_id=current_user.store_id).all()
-    else:  # Merchant sees all
-        store_products = StoreProduct.query.all()
 
-    result = [sp.to_dict() for sp in store_products]
-    return jsonify({'store_products': result}), 200
+    elif role == 'merchant':
+        # Only products in this merchant's own stores
+        owned_ids = get_merchant_store_ids(current_user_id)
+        store_products = StoreProduct.query.filter(
+            StoreProduct.store_id.in_(owned_ids)
+        ).all()
+
+    else:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    return jsonify({'store_products': [sp.to_dict() for sp in store_products]}), 200
+
 
 # -----------------------------------------------
-# CREATE PRODUCT (Admin only)
+# CREATE PRODUCT (Admin only, scoped to their store)
 # -----------------------------------------------
 @products_bp.route('/', methods=['POST'])
 @jwt_required()
@@ -56,17 +73,21 @@ def create_product():
     db.session.add(product)
     db.session.commit()
 
-    store_product = StoreProduct(store_id=current_user.store_id, product_id=product.id)
+    store_product = StoreProduct(
+        store_id=current_user.store_id,
+        product_id=product.id
+    )
     db.session.add(store_product)
     db.session.commit()
 
     return jsonify({
-        'message': 'Product created and assigned successfully',
+        'message': 'Product created and assigned to store successfully',
         'product': product.to_dict()
     }), 201
 
+
 # -----------------------------------------------
-# GET ALL PRODUCTS (list view)
+# GET ALL PRODUCTS (paginated, scoped per role)
 # -----------------------------------------------
 @products_bp.route('/', methods=['GET'])
 @jwt_required()
@@ -79,13 +100,21 @@ def get_products():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
 
-    if role == 'clerk' or role == 'admin':
+    if role in ['clerk', 'admin']:
         if not current_user or not current_user.store_id:
             return jsonify({'error': 'Not assigned to any store'}), 403
         store_products = StoreProduct.query.filter_by(store_id=current_user.store_id)\
             .paginate(page=page, per_page=per_page, error_out=False)
+
+    elif role == 'merchant':
+        # Only products from this merchant's own stores
+        owned_ids = get_merchant_store_ids(current_user_id)
+        store_products = StoreProduct.query.filter(
+            StoreProduct.store_id.in_(owned_ids)
+        ).paginate(page=page, per_page=per_page, error_out=False)
+
     else:
-        store_products = StoreProduct.query.paginate(page=page, per_page=per_page, error_out=False)
+        return jsonify({'error': 'Unauthorized'}), 403
 
     result = []
     for sp in store_products.items:
@@ -100,3 +129,36 @@ def get_products():
         'pages': store_products.pages,
         'current_page': store_products.page
     }), 200
+
+
+# -----------------------------------------------
+# DELETE PRODUCT
+# -----------------------------------------------
+@products_bp.route('/<int:product_id>', methods=['DELETE'])
+@jwt_required()
+def delete_product(product_id):
+    claims = get_jwt()
+    current_user_id = get_jwt_identity()
+    role = claims.get('role')
+
+    if role not in ['admin', 'merchant']:
+        return jsonify({'error': 'Not authorized'}), 403
+
+    product = Product.query.get(product_id)
+    if not product:
+        return jsonify({'error': 'Product not found'}), 404
+
+    # If merchant, make sure product belongs to their store
+    if role == 'merchant':
+        owned_ids = get_merchant_store_ids(current_user_id)
+        linked = StoreProduct.query.filter(
+            StoreProduct.product_id == product_id,
+            StoreProduct.store_id.in_(owned_ids)
+        ).first()
+        if not linked:
+            return jsonify({'error': 'Not authorized to delete this product'}), 403
+
+    db.session.delete(product)
+    db.session.commit()
+
+    return jsonify({'message': f'Product deleted successfully'}), 200

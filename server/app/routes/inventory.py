@@ -4,11 +4,21 @@ from app import db
 from app.models.inventory_entry import InventoryEntry
 from app.models.store_product import StoreProduct
 from app.models.product import Product
+from app.models.store import Store
 from app.models.user import User
 from sqlalchemy import func
 from datetime import datetime
 
 inventory_bp = Blueprint('inventory', __name__)
+
+
+# -----------------------------------------------
+# Helper: get store IDs owned by a merchant
+# -----------------------------------------------
+def get_merchant_store_ids(merchant_id):
+    stores = Store.query.filter_by(merchant_id=merchant_id).all()
+    return [s.id for s in stores]
+
 
 # -----------------------------------------------
 # CREATE AN INVENTORY ENTRY (Clerk only)
@@ -50,8 +60,9 @@ def create_entry():
         'entry': entry.to_dict()
     }), 201
 
+
 # -----------------------------------------------
-# GET ALL ENTRIES (paginated)
+# GET ALL ENTRIES (paginated, scoped per role)
 # -----------------------------------------------
 @inventory_bp.route('/', methods=['GET'])
 @jwt_required()
@@ -66,15 +77,26 @@ def get_entries():
 
     if role == 'clerk':
         query = InventoryEntry.query.filter_by(clerk_id=current_user_id)
+
     elif role == 'admin':
         if not current_user or not current_user.store_id:
             return jsonify({'error': 'Admin not assigned to any store'}), 403
-        query = InventoryEntry.query.join(StoreProduct).filter(StoreProduct.store_id == current_user.store_id)
-    else:  # Merchant
-        query = InventoryEntry.query
+        query = InventoryEntry.query.join(StoreProduct).filter(
+            StoreProduct.store_id == current_user.store_id
+        )
+
+    elif role == 'merchant':
+        # Only entries from stores this merchant owns
+        owned_ids = get_merchant_store_ids(current_user_id)
+        query = InventoryEntry.query.join(StoreProduct).filter(
+            StoreProduct.store_id.in_(owned_ids)
+        )
+
+    else:
+        return jsonify({'error': 'Unauthorized'}), 403
 
     if payment_status in ['paid', 'unpaid']:
-        query = query.filter_by(payment_status=payment_status)
+        query = query.filter(InventoryEntry.payment_status == payment_status)
 
     entries = query.order_by(InventoryEntry.recorded_at.desc()).paginate(
         page=page, per_page=per_page, error_out=False
@@ -87,8 +109,9 @@ def get_entries():
         'current_page': entries.page
     }), 200
 
+
 # -----------------------------------------------
-# GET MY ENTRIES (for Clerk Dashboard)
+# GET MY ENTRIES (Clerk Dashboard)
 # -----------------------------------------------
 @inventory_bp.route('/my-entries', methods=['GET'])
 @jwt_required()
@@ -99,13 +122,30 @@ def get_my_entries():
         return jsonify({'error': 'Only clerks can access my-entries'}), 403
 
     limit = request.args.get('limit', 6, type=int)
-    entries = InventoryEntry.query.filter_by(clerk_id=current_user_id)\
-        .order_by(InventoryEntry.recorded_at.desc())\
-        .limit(limit).all()
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    payment_status = request.args.get('payment_status')
 
-    return jsonify({
-        'entries': [e.to_dict() for e in entries]
-    }), 200
+    query = InventoryEntry.query.filter_by(clerk_id=current_user_id)
+
+    if payment_status in ['paid', 'unpaid']:
+        query = query.filter_by(payment_status=payment_status)
+
+    # Support both limit (dashboard) and pagination (my-entries page)
+    if request.args.get('limit'):
+        entries = query.order_by(InventoryEntry.recorded_at.desc()).limit(limit).all()
+        return jsonify({'entries': [e.to_dict() for e in entries]}), 200
+    else:
+        result = query.order_by(InventoryEntry.recorded_at.desc()).paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+        return jsonify({
+            'entries': [e.to_dict() for e in result.items],
+            'total': result.total,
+            'pages': result.pages,
+            'current_page': result.page
+        }), 200
+
 
 # -----------------------------------------------
 # UPDATE PAYMENT STATUS
@@ -114,12 +154,21 @@ def get_my_entries():
 @jwt_required()
 def update_payment_status(entry_id):
     claims = get_jwt()
-    if claims.get('role') not in ['admin', 'merchant']:
+    current_user_id = get_jwt_identity()
+    role = claims.get('role')
+
+    if role not in ['admin', 'merchant']:
         return jsonify({'error': 'Only admins and merchants can update payment status'}), 403
 
     entry = InventoryEntry.query.get(entry_id)
     if not entry:
         return jsonify({'error': 'Entry not found'}), 404
+
+    # Merchant can only update entries in their own stores
+    if role == 'merchant':
+        owned_ids = get_merchant_store_ids(current_user_id)
+        if entry.store_product.store_id not in owned_ids:
+            return jsonify({'error': 'Not authorized to update this entry'}), 403
 
     data = request.get_json()
     new_status = data.get('payment_status')
@@ -134,8 +183,9 @@ def update_payment_status(entry_id):
         'entry': entry.to_dict()
     }), 200
 
+
 # -----------------------------------------------
-# REPORT SUMMARY
+# REPORT SUMMARY — scoped to merchant's own stores
 # -----------------------------------------------
 @inventory_bp.route('/report/summary', methods=['GET'])
 @jwt_required()
@@ -148,15 +198,28 @@ def get_summary():
 
     if role == 'clerk':
         entries = InventoryEntry.query.filter_by(clerk_id=current_user_id).all()
+
     elif role == 'admin':
         if not current_user or not current_user.store_id:
             return jsonify({'error': 'Admin not assigned to any store'}), 403
-        entries = InventoryEntry.query.join(StoreProduct).filter(StoreProduct.store_id == current_user.store_id).all()
-    else:  # Merchant
-        if store_id:
-            entries = InventoryEntry.query.join(StoreProduct).filter(StoreProduct.store_id == store_id).all()
+        entries = InventoryEntry.query.join(StoreProduct).filter(
+            StoreProduct.store_id == current_user.store_id
+        ).all()
+
+    elif role == 'merchant':
+        # Always scope to this merchant's stores only
+        owned_ids = get_merchant_store_ids(current_user_id)
+        if store_id and store_id in owned_ids:
+            entries = InventoryEntry.query.join(StoreProduct).filter(
+                StoreProduct.store_id == store_id
+            ).all()
         else:
-            entries = InventoryEntry.query.all()
+            entries = InventoryEntry.query.join(StoreProduct).filter(
+                StoreProduct.store_id.in_(owned_ids)
+            ).all()
+
+    else:
+        return jsonify({'error': 'Unauthorized'}), 403
 
     total_received = sum(e.quantity_received for e in entries)
     total_in_stock = sum(e.quantity_in_stock for e in entries)
@@ -175,8 +238,9 @@ def get_summary():
         }
     }), 200
 
+
 # -----------------------------------------------
-# REPORT TREND (Fixed - clean joins)
+# REPORT TREND — scoped to merchant's own stores
 # -----------------------------------------------
 @inventory_bp.route('/report/trend', methods=['GET'])
 @jwt_required()
@@ -187,7 +251,6 @@ def report_trend():
     current_user = db.session.get(User, current_user_id)
     store_id = request.args.get('store_id', type=int)
 
-    # Clean and correct join chain
     query = db.session.query(
         Product.name.label('product_name'),
         func.sum(InventoryEntry.quantity_received).label('quantity_received'),
@@ -197,12 +260,22 @@ def report_trend():
 
     if role == 'clerk':
         query = query.filter(InventoryEntry.clerk_id == current_user_id)
+
     elif role == 'admin':
         if not current_user or not current_user.store_id:
             return jsonify({'error': 'Admin not assigned to any store'}), 403
         query = query.filter(StoreProduct.store_id == current_user.store_id)
-    elif role == 'merchant' and store_id:
-        query = query.filter(StoreProduct.store_id == store_id)
+
+    elif role == 'merchant':
+        # Always scope to this merchant's stores only
+        owned_ids = get_merchant_store_ids(current_user_id)
+        if store_id and store_id in owned_ids:
+            query = query.filter(StoreProduct.store_id == store_id)
+        else:
+            query = query.filter(StoreProduct.store_id.in_(owned_ids))
+
+    else:
+        return jsonify({'error': 'Unauthorized'}), 403
 
     trend = query.group_by(Product.name)\
                  .order_by(func.sum(InventoryEntry.quantity_received).desc())\

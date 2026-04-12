@@ -2,7 +2,8 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jwt
 from app import db
 from app.models.user import User
-from app.utils.validators import validate_email, validate_password, validate_required_fields
+from app.models.store import Store
+from app.utils.validators import validate_email, validate_required_fields
 from app.utils.email import send_invite_email, send_reset_password_email
 import bcrypt
 import secrets
@@ -11,53 +12,103 @@ from datetime import datetime, timedelta
 auth_bp = Blueprint('auth', __name__)
 
 
-# -----------------------------------------------
-# HEALTH CHECK
-# -----------------------------------------------
-@auth_bp.route('/health', methods=['GET'])
-def health():
-    return jsonify({'message': 'Auth routes working! ✅'}), 200
-
-
-# -----------------------------------------------
-# SETUP FIRST MERCHANT (only once)
-# -----------------------------------------------
-@auth_bp.route('/setup', methods=['POST'])
-def setup_merchant():
-    existing = User.query.filter_by(role='merchant').first()
-    if existing:
-        return jsonify({'error': 'Merchant already exists'}), 400
-
+# =============================================
+# MERCHANT SELF-REGISTRATION (Fresh Store)
+# =============================================
+@auth_bp.route('/register-merchant', methods=['POST'])
+def register_merchant():
     data = request.get_json()
-    missing = validate_required_fields(data, ['full_name', 'email', 'password'])
+
+    missing = validate_required_fields(data, ['full_name', 'email', 'password', 'store_name'])
     if missing:
         return jsonify({'error': f'Missing fields: {", ".join(missing)}'}), 400
 
     if not validate_email(data['email']):
         return jsonify({'error': 'Invalid email format'}), 400
 
+    # Only allow gmail and yahoo
+    allowed_domains = ['gmail.com', 'yahoo.com']
+    domain = data['email'].split('@')[1].lower()
+    if domain not in allowed_domains:
+        return jsonify({'error': 'Only @gmail.com and @yahoo.com emails are allowed'}), 400
+
     if User.query.filter_by(email=data['email']).first():
-        return jsonify({'error': 'Email already exists'}), 400
+        return jsonify({'error': 'Email already registered'}), 409
 
-    hashed = bcrypt.hashpw(data['password'].encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    password_hash = bcrypt.hashpw(data['password'].encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
+    # Create fresh store — merchant_id will be set after merchant is created
+    new_store = Store(
+        name=data['store_name'],
+        location=data.get('location', 'Head Office')
+    )
+    db.session.add(new_store)
+    db.session.flush()  # get new_store.id
+
+    # Create merchant user
     merchant = User(
         full_name=data['full_name'],
         email=data['email'],
-        password_hash=hashed,
+        phone_number=data.get('phone_number'),
+        password_hash=password_hash,
         role='merchant',
+        is_active=True,
         is_verified=True,
-        is_active=True
+        store_id=new_store.id
     )
     db.session.add(merchant)
+    db.session.flush()  # get merchant.id
+
+    # ✅ Link store to this merchant — this is what was missing
+    new_store.merchant_id = merchant.id
+
     db.session.commit()
 
-    return jsonify({'message': 'Merchant created successfully', 'user': merchant.to_dict()}), 201
+    access_token = create_access_token(
+        identity=str(merchant.id),
+        additional_claims={'role': 'merchant'}
+    )
+
+    return jsonify({
+        'message': 'Merchant account and fresh store created successfully!',
+        'access_token': access_token,
+        'user': merchant.to_dict(),
+        'store': new_store.to_dict()
+    }), 201
 
 
-# -----------------------------------------------
+# =============================================
+# INVITED USER REGISTRATION (Admin / Clerk)
+# =============================================
+@auth_bp.route('/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    token = data.get('token')
+
+    if not token:
+        return jsonify({'error': 'Missing invite token'}), 400
+
+    user = User.query.filter_by(invite_token=token).first()
+    if not user or not user.invite_token_expiry or user.invite_token_expiry < datetime.utcnow():
+        return jsonify({'error': 'Invalid or expired invite token'}), 400
+
+    password_hash = bcrypt.hashpw(data['password'].encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+    user.full_name = data['full_name']
+    user.phone_number = data.get('phone_number')
+    user.password_hash = password_hash
+    user.is_verified = True
+    user.invite_token = None
+    user.invite_token_expiry = None
+
+    db.session.commit()
+
+    return jsonify({'message': 'Registration successful. You can now login.'}), 200
+
+
+# =============================================
 # LOGIN
-# -----------------------------------------------
+# =============================================
 @auth_bp.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
@@ -68,16 +119,24 @@ def login():
         return jsonify({'error': 'Email and password are required'}), 400
 
     user = User.query.filter_by(email=email).first()
-    if not user or not bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
+
+    # Check user exists and password is set
+    if not user or not user.password_hash:
+        return jsonify({'error': 'Invalid email or password'}), 401
+
+    if not bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
         return jsonify({'error': 'Invalid email or password'}), 401
 
     if not user.is_active:
         return jsonify({'error': 'Account is suspended'}), 403
 
     if not user.is_verified:
-        return jsonify({'error': 'Account is not verified'}), 403
+        return jsonify({'error': 'Account not verified. Please complete registration via your invite link.'}), 403
 
-    access_token = create_access_token(identity=str(user.id), additional_claims={'role': user.role})
+    access_token = create_access_token(
+        identity=str(user.id),
+        additional_claims={'role': user.role}
+    )
 
     return jsonify({
         'access_token': access_token,
@@ -85,37 +144,9 @@ def login():
     }), 200
 
 
-# -----------------------------------------------
-# REGISTER (from invite)
-# -----------------------------------------------
-@auth_bp.route('/register', methods=['POST'])
-def register():
-    data = request.get_json()
-    token = data.get('token')
-    full_name = data.get('full_name')
-    password = data.get('password')
-
-    if not token or not full_name or not password:
-        return jsonify({'error': 'Missing required fields'}), 400
-
-    user = User.query.filter_by(invite_token=token).first()
-    if not user or not user.invite_token_expiry or user.invite_token_expiry < datetime.utcnow():
-        return jsonify({'error': 'Invalid or expired invite token'}), 400
-
-    user.full_name = full_name
-    user.password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-    user.is_verified = True
-    user.invite_token = None
-    user.invite_token_expiry = None
-
-    db.session.commit()
-
-    return jsonify({'message': 'Registration successful. You can now login.'}), 200
-
-
-# -----------------------------------------------
-# INVITE USER
-# -----------------------------------------------
+# =============================================
+# SEND INVITE (Merchant invites Admin, Admin invites Clerk)
+# =============================================
 @auth_bp.route('/invite', methods=['POST'])
 @jwt_required()
 def invite():
@@ -123,7 +154,7 @@ def invite():
     current_user = User.query.get(current_user_id)
 
     if current_user.role not in ['merchant', 'admin']:
-        return jsonify({'error': 'Only merchant or admin can invite users'}), 403
+        return jsonify({'error': 'Only merchant or admin can send invites'}), 403
 
     data = request.get_json()
     email = data.get('email')
@@ -133,68 +164,83 @@ def invite():
     if not email or not role:
         return jsonify({'error': 'Email and role are required'}), 400
 
+    if role not in ['admin', 'clerk']:
+        return jsonify({'error': 'Can only invite admins or clerks'}), 400
+
     if User.query.filter_by(email=email).first():
-        return jsonify({'error': 'Email already exists'}), 400
+        return jsonify({'error': 'User already exists'}), 409
 
     token = secrets.token_urlsafe(32)
     expiry = datetime.utcnow() + timedelta(hours=48)
+
+    # Determine store assignment
+    if current_user.role == 'admin':
+        # Admin can only invite clerks to their own store
+        assigned_store_id = current_user.store_id
+    else:
+        # Merchant picks which of their stores to assign the admin to
+        assigned_store_id = store_id
 
     new_user = User(
         email=email,
         role=role,
         invite_token=token,
         invite_token_expiry=expiry,
-        store_id=store_id if role != 'merchant' else None,
-        is_verified=False,
-        is_active=True
+        store_id=assigned_store_id,
+        is_active=True,
+        is_verified=False
     )
     db.session.add(new_user)
     db.session.commit()
 
     invite_link = f"http://localhost:3000/register?token={token}"
-    send_invite_email(email, invite_link, role, "LocalShop")
+    email_sent = send_invite_email(email, invite_link, role, "LocalShop")
 
-    return jsonify({'message': 'Invite sent successfully'}), 200
+    if email_sent:
+        return jsonify({'message': f'Invite sent successfully to {email}'}), 200
+    else:
+        return jsonify({'message': 'User created but email failed to send. Check server logs.'}), 201
 
 
-# -----------------------------------------------
-# GET USERS (FIXED FILTERING)
-# -----------------------------------------------
+# =============================================
+# GET USERS (filtered and ownership-scoped)
+# =============================================
 @auth_bp.route('/users', methods=['GET'])
 @jwt_required()
 def get_users():
     current_user_id = get_jwt_identity()
     current_user = User.query.get(current_user_id)
 
-    role = request.args.get('role')
-    store_id = request.args.get('store_id', type=int)
-
-    query = User.query
+    store_id_filter = request.args.get('store_id', type=int)
 
     if current_user.role == 'admin':
-        # Admin can only see clerks of their own store
+        # Admin only sees clerks in their own store
         if not current_user.store_id:
             return jsonify({'error': 'Admin not assigned to any store'}), 403
-        query = query.filter_by(role='clerk', store_id=current_user.store_id)
+        query = User.query.filter_by(role='clerk', store_id=current_user.store_id)
+
     elif current_user.role == 'merchant':
-        # Merchant can only see admins
-        query = query.filter_by(role='admin')
+        # ✅ Merchant only sees admins in stores THEY OWN
+        owned_store_ids = [
+            s.id for s in Store.query.filter_by(merchant_id=current_user_id).all()
+        ]
+        query = User.query.filter(
+            User.role == 'admin',
+            User.store_id.in_(owned_store_ids)
+        )
+        if store_id_filter and store_id_filter in owned_store_ids:
+            query = query.filter(User.store_id == store_id_filter)
+
     else:
         return jsonify({'error': 'Unauthorized'}), 403
 
-    # Extra filters if provided
-    if role:
-        query = query.filter_by(role=role)
-    if store_id:
-        query = query.filter_by(store_id=store_id)
-
     users = query.all()
-    return jsonify({'users': [user.to_dict() for user in users]}), 200
+    return jsonify({'users': [u.to_dict() for u in users]}), 200
 
 
-# -----------------------------------------------
+# =============================================
 # TOGGLE ACTIVE STATUS
-# -----------------------------------------------
+# =============================================
 @auth_bp.route('/users/<int:user_id>/toggle-active', methods=['PATCH'])
 @jwt_required()
 def toggle_user_active(user_id):
@@ -211,16 +257,16 @@ def toggle_user_active(user_id):
     user.is_active = not user.is_active
     db.session.commit()
 
-    status = "activated" if user.is_active else "suspended"
+    status = 'activated' if user.is_active else 'suspended'
     return jsonify({
         'message': f'User has been {status} successfully',
         'user': user.to_dict()
     }), 200
 
 
-# -----------------------------------------------
+# =============================================
 # DELETE USER
-# -----------------------------------------------
+# =============================================
 @auth_bp.route('/users/<int:user_id>', methods=['DELETE'])
 @jwt_required()
 def delete_user(user_id):
@@ -237,7 +283,7 @@ def delete_user(user_id):
     db.session.delete(user)
     db.session.commit()
 
-    return jsonify({'message': f'User {user.full_name} has been deleted successfully'}), 200
+    return jsonify({'message': f'{user.full_name} deleted successfully'}), 200
 
 
 # =============================================
@@ -286,11 +332,11 @@ def reset_password():
     user.reset_token_expiry = None
     db.session.commit()
 
-    return jsonify({'message': 'Password reset successful'}), 200
+    return jsonify({'message': 'Password reset successful. You can now login.'}), 200
 
 
 # =============================================
-# CHANGE PASSWORD (Logged in user)
+# CHANGE PASSWORD (Logged in)
 # =============================================
 @auth_bp.route('/change-password', methods=['PUT'])
 @jwt_required()
@@ -315,7 +361,7 @@ def change_password():
 
 
 # =============================================
-# UPDATE PROFILE (Edit Name & Phone)
+# UPDATE PROFILE
 # =============================================
 @auth_bp.route('/profile', methods=['PUT'])
 @jwt_required()
