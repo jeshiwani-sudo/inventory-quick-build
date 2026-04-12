@@ -11,14 +11,9 @@ from datetime import datetime
 
 inventory_bp = Blueprint('inventory', __name__)
 
-
-# -----------------------------------------------
-# Helper: get store IDs owned by a merchant
-# -----------------------------------------------
 def get_merchant_store_ids(merchant_id):
     stores = Store.query.filter_by(merchant_id=merchant_id).all()
     return [s.id for s in stores]
-
 
 # -----------------------------------------------
 # CREATE AN INVENTORY ENTRY (Clerk only)
@@ -60,7 +55,6 @@ def create_entry():
         'entry': entry.to_dict()
     }), 201
 
-
 # -----------------------------------------------
 # GET ALL ENTRIES (paginated, scoped per role)
 # -----------------------------------------------
@@ -85,8 +79,7 @@ def get_entries():
             StoreProduct.store_id == current_user.store_id
         )
 
-    elif role == 'merchant':
-        # Only entries from stores this merchant owns
+    elif role == 'merchant':        
         owned_ids = get_merchant_store_ids(current_user_id)
         query = InventoryEntry.query.join(StoreProduct).filter(
             StoreProduct.store_id.in_(owned_ids)
@@ -108,7 +101,6 @@ def get_entries():
         'pages': entries.pages,
         'current_page': entries.page
     }), 200
-
 
 # -----------------------------------------------
 # GET MY ENTRIES (Clerk Dashboard)
@@ -146,7 +138,6 @@ def get_my_entries():
             'current_page': result.page
         }), 200
 
-
 # -----------------------------------------------
 # UPDATE PAYMENT STATUS
 # -----------------------------------------------
@@ -183,9 +174,8 @@ def update_payment_status(entry_id):
         'entry': entry.to_dict()
     }), 200
 
-
 # -----------------------------------------------
-# REPORT SUMMARY — scoped to merchant's own stores
+# REPORT SUMMARY 
 # -----------------------------------------------
 @inventory_bp.route('/report/summary', methods=['GET'])
 @jwt_required()
@@ -238,9 +228,8 @@ def get_summary():
         }
     }), 200
 
-
 # -----------------------------------------------
-# REPORT TREND — scoped to merchant's own stores
+# REPORT TREND 
 # -----------------------------------------------
 @inventory_bp.route('/report/trend', methods=['GET'])
 @jwt_required()

@@ -8,14 +8,9 @@ from app.models.user import User
 
 products_bp = Blueprint('products', __name__)
 
-
-# -----------------------------------------------
-# Helper: get store IDs owned by a merchant
-# -----------------------------------------------
 def get_merchant_store_ids(merchant_id):
     stores = Store.query.filter_by(merchant_id=merchant_id).all()
     return [s.id for s in stores]
-
 
 # -----------------------------------------------
 # GET STORE PRODUCTS (Clerk/Admin form dropdowns)
@@ -44,7 +39,6 @@ def get_store_products():
         return jsonify({'error': 'Unauthorized'}), 403
 
     return jsonify({'store_products': [sp.to_dict() for sp in store_products]}), 200
-
 
 # -----------------------------------------------
 # CREATE PRODUCT (Admin only, scoped to their store)
@@ -84,7 +78,6 @@ def create_product():
         'message': 'Product created and assigned to store successfully',
         'product': product.to_dict()
     }), 201
-
 
 # -----------------------------------------------
 # GET ALL PRODUCTS (paginated, scoped per role)
@@ -130,7 +123,6 @@ def get_products():
         'current_page': store_products.page
     }), 200
 
-
 # -----------------------------------------------
 # DELETE PRODUCT
 # -----------------------------------------------
@@ -148,7 +140,7 @@ def delete_product(product_id):
     if not product:
         return jsonify({'error': 'Product not found'}), 404
 
-    # If merchant, make sure product belongs to their store
+    # If merchant, product belongs to their store
     if role == 'merchant':
         owned_ids = get_merchant_store_ids(current_user_id)
         linked = StoreProduct.query.filter(

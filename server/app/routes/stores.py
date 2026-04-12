@@ -7,7 +7,6 @@ from app.models.store_product import StoreProduct
 
 stores_bp = Blueprint('stores', __name__)
 
-
 # -----------------------------------------------
 # GET STORES — merchant sees only their own stores
 # -----------------------------------------------
@@ -29,7 +28,6 @@ def get_stores():
 
     return jsonify({'stores': [s.to_dict() for s in stores]}), 200
 
-
 # -----------------------------------------------
 # CREATE STORE — automatically linked to this merchant
 # -----------------------------------------------
@@ -49,16 +47,15 @@ def create_store():
     store = Store(
         name=data['name'],
         location=data.get('location', ''),
-        merchant_id=current_user_id  # Always scope to this merchant
+        merchant_id=current_user_id  
     )
     db.session.add(store)
     db.session.commit()
 
     return jsonify({'message': 'Store created', 'store': store.to_dict()}), 201
 
-
 # -----------------------------------------------
-# UPDATE STORE — only if this merchant owns it
+# UPDATE STORE 
 # -----------------------------------------------
 @stores_bp.route('/<int:store_id>', methods=['PUT'])
 @jwt_required()
@@ -81,9 +78,8 @@ def update_store(store_id):
     db.session.commit()
     return jsonify({'message': 'Store updated', 'store': store.to_dict()}), 200
 
-
 # -----------------------------------------------
-# DELETE STORE — only if this merchant owns it
+# DELETE STORE 
 # -----------------------------------------------
 @stores_bp.route('/<int:store_id>', methods=['DELETE'])
 @jwt_required()

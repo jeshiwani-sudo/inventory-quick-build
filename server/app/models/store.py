@@ -10,10 +10,8 @@ class Store(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Which merchant owns this store
     merchant_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
 
-    # Relationships — explicit foreign_keys to resolve ambiguity
     users = db.relationship(
         'User',
         back_populates='store',
@@ -31,7 +29,6 @@ class Store(db.Model):
         cascade='all, delete-orphan'
     )
 
-    # The merchant who owns this store
     merchant = db.relationship(
         'User',
         foreign_keys=[merchant_id],

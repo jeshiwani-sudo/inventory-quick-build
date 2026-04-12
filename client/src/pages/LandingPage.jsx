@@ -84,7 +84,7 @@ const LandingPage = () => {
             {['Features', 'Roles', 'About'].map(l => (
               <a key={l} href={`#${l.toLowerCase()}`} className="lp-nav-link">{l}</a>
             ))}
-            {/* ADDED FROM UPDATE */}
+            
             <button className="lp-btn-secondary" onClick={() => navigate('/register')}>
               Register
             </button>

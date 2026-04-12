@@ -5,7 +5,7 @@ class SupplyRequest(db.Model):
     __tablename__ = 'supply_requests'
 
     id = db.Column(db.Integer, primary_key=True)
-    # Changed for new store_products junction table: product_id → store_product_id
+
     store_product_id = db.Column(db.Integer, db.ForeignKey('store_products.id'), nullable=False)
     clerk_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     store_id = db.Column(db.Integer, db.ForeignKey('stores.id'), nullable=False)
@@ -15,7 +15,7 @@ class SupplyRequest(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Relationships - Updated for new junction table
+
     store_product = db.relationship('StoreProduct')
     clerk = db.relationship('User', back_populates='supply_requests')
     store = db.relationship('Store', back_populates='supply_requests')

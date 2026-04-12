@@ -15,7 +15,7 @@ class InventoryEntry(db.Model):
     payment_status = db.Column(db.String(20), default='unpaid')
     recorded_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Relationships - Updated for new junction table
+    # Relationships 
     store_product = db.relationship('StoreProduct', back_populates='inventory_entries')
     clerk = db.relationship('User', back_populates='inventory_entries')
 

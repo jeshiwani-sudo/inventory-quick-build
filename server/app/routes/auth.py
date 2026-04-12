@@ -13,7 +13,7 @@ auth_bp = Blueprint('auth', __name__)
 
 
 # =============================================
-# MERCHANT SELF-REGISTRATION (Fresh Store)
+# MERCHANT SELF-REGISTRATION 
 # =============================================
 @auth_bp.route('/register-merchant', methods=['POST'])
 def register_merchant():
@@ -37,13 +37,13 @@ def register_merchant():
 
     password_hash = bcrypt.hashpw(data['password'].encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
-    # Create fresh store — merchant_id will be set after merchant is created
+    # Create fresh store 
     new_store = Store(
         name=data['store_name'],
         location=data.get('location', 'Head Office')
     )
     db.session.add(new_store)
-    db.session.flush()  # get new_store.id
+    db.session.flush()  
 
     # Create merchant user
     merchant = User(
@@ -57,9 +57,9 @@ def register_merchant():
         store_id=new_store.id
     )
     db.session.add(merchant)
-    db.session.flush()  # get merchant.id
+    db.session.flush()  
 
-    # ✅ Link store to this merchant — this is what was missing
+    # Link store to this merchant 
     new_store.merchant_id = merchant.id
 
     db.session.commit()
@@ -174,11 +174,9 @@ def invite():
     expiry = datetime.utcnow() + timedelta(hours=48)
 
     # Determine store assignment
-    if current_user.role == 'admin':
-        # Admin can only invite clerks to their own store
+    if current_user.role == 'admin':        
         assigned_store_id = current_user.store_id
-    else:
-        # Merchant picks which of their stores to assign the admin to
+    else:        
         assigned_store_id = store_id
 
     new_user = User(
@@ -220,7 +218,7 @@ def get_users():
         query = User.query.filter_by(role='clerk', store_id=current_user.store_id)
 
     elif current_user.role == 'merchant':
-        # ✅ Merchant only sees admins in stores THEY OWN
+        # Merchant only sees admins in stores THEY OWN
         owned_store_ids = [
             s.id for s in Store.query.filter_by(merchant_id=current_user_id).all()
         ]

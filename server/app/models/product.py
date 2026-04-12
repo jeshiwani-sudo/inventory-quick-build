@@ -10,7 +10,7 @@ class Product(db.Model):
     image_url = db.Column(db.String(300), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Relationships - Changed for new store_products junction table
+    # Relationships 
     store_products = db.relationship('StoreProduct', back_populates='product', cascade='all, delete-orphan')
 
     def to_dict(self):
