@@ -120,6 +120,18 @@ const Login = () => {
             Forgot Password?
           </button>
         </div>
+
+        {/* Register link for merchants - ADDED FROM UPDATES */}
+        <div className="text-center mt-6 text-sm">
+          Don't have an account?{' '}
+          <button
+            onClick={() => navigate('/register')}
+            className="text-indigo-600 hover:text-indigo-700 font-medium underline"
+          >
+            Register here
+          </button>
+        </div>
+
       </div>
     </div>
   );

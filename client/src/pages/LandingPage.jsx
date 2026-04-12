@@ -84,13 +84,18 @@ const LandingPage = () => {
             {['Features', 'Roles', 'About'].map(l => (
               <a key={l} href={`#${l.toLowerCase()}`} className="lp-nav-link">{l}</a>
             ))}
+            {/* ADDED FROM UPDATE */}
+            <button className="lp-btn-secondary" onClick={() => navigate('/register')}>
+              Register
+            </button>
             <button className="lp-btn-primary" onClick={() => navigate('/login')}>
               Sign In →
             </button>
           </div>
           <button
             onClick={() => setMobileMenuOpen(o => !o)}
-            style={{ display: 'none', background: 'none', border: 'none', color: '#94A3B8', fontSize: 24, cursor: 'pointer' }}
+            className="lp-mobile-menu-btn"
+            style={{ background: 'none', border: 'none', color: '#94A3B8', fontSize: 24, cursor: 'pointer' }}
           >
             ☰
           </button>
@@ -101,6 +106,7 @@ const LandingPage = () => {
             {['Features', 'Roles', 'About'].map(l => (
               <a key={l} href={`#${l.toLowerCase()}`} className="lp-mobile-link" onClick={() => setMobileMenuOpen(false)}>{l}</a>
             ))}
+            <button className="lp-mobile-btn" onClick={() => navigate('/register')}>Register</button>
             <button className="lp-mobile-btn" onClick={() => navigate('/login')}>Sign In →</button>
           </div>
         )}
@@ -128,8 +134,12 @@ const LandingPage = () => {
         </p>
 
         <div className="lp-hero-btns lp-hero-buttons">
-          <button className="lp-btn-primary hero" onClick={() => navigate('/login')}>
-            Get Started — Sign In
+          {/* UPDATED BUTTONS FROM UPDATE FILE */}
+          <button className="lp-btn-primary hero" onClick={() => navigate('/register')}>
+            Register as Merchant
+          </button>
+          <button className="lp-btn-secondary" onClick={() => navigate('/login')}>
+            Sign In
           </button>
           <a href="#features" className="lp-btn-secondary">
             Explore Features ↓
