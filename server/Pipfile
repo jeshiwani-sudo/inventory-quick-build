@@ -13,10 +13,10 @@ psycopg2-binary = "*"
 python-dotenv = "*"
 bcrypt = "*"
 flasgger = "*"
-gunicorn = "*"
 cloudinary = "*"
 flask-migrate = "*"
 flask-mailman = "*"
+gunicorn = "*"
 
 [dev-packages]
 pytest = "*"
