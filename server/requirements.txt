@@ -60,8 +60,8 @@ ptyprocess==0.7.0
 pure_eval==0.2.3
 pyasn1==0.6.3
 pycparser==2.23
-pydantic==2.9.2
-pydantic_core==2.23.4
+pydantic==2.7.4
+pydantic_core==2.18.4
 Pygments==2.19.2
 PyJWT==2.9.0
 pytest==8.3.5
