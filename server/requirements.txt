@@ -7,7 +7,7 @@ backcall==0.2.0
 bcrypt==4.0.1
 blinker==1.8.2
 certifi==2026.2.25
-cffi==1.17.1
+
 click==8.1.8
 cloudinary==1.44.1
 coverage==7.6.1
